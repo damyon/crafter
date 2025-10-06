@@ -1,6 +1,11 @@
+use crate::command::Command;
+use crate::command::CommandType;
 use crate::graphics::Graphics;
 use crate::scene::Scene;
 use glium::Surface;
+use glium::winit::event::ElementState;
+use glium::winit::event::MouseButton;
+use glium::winit::event_loop::ControlFlow;
 mod graphics;
 
 mod camera;
@@ -34,6 +39,8 @@ fn main() {
 
     // Start rendering by creating a new frame
     let mut frame = display.draw();
+    let mut last_cursor_position: (i32, i32) = (0, 0);
+    let mut mouse_button_pressed = false;
     // Which we fill with an opaque blue color
     frame.clear_color(0.3, 0.0, 1.0, 1.0);
     // By finishing the frame swap buffers and thereby make it visible on the window
@@ -43,6 +50,8 @@ fn main() {
     #[allow(deprecated)]
     event_loop
         .run(move |event, window_target| {
+            window_target.set_control_flow(ControlFlow::Poll);
+
             match event {
                 glium::winit::event::Event::WindowEvent { event, .. } => match event {
                     // This event is sent by the OS when you close the Window, or request the program to quit via the taskbar.
@@ -52,9 +61,6 @@ fn main() {
                     }
                     glium::winit::event::WindowEvent::RedrawRequested => {
                         let mut frame = display.draw();
-                        // Which we fill with an opaque blue color
-                        //frame.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
-
                         let (width, height) = display.get_framebuffer_dimensions();
                         let mut graphics: Graphics =
                             Graphics::new(&display, &mut frame, width, height);
@@ -62,10 +68,67 @@ fn main() {
                         // By finishing the frame swap buffers and thereby make it visible on the window
                         scene.draw(&mut graphics);
                         frame.finish().unwrap();
+
+                        window.request_redraw();
+                    }
+                    glium::winit::event::WindowEvent::MouseInput {
+                        device_id,
+                        state,
+                        button,
+                    } => {
+                        // Ignore the device ID for now.
+                        _ = device_id;
+                        match state {
+                            ElementState::Pressed => match button {
+                                MouseButton::Left => {
+                                    let mouse_down = Command {
+                                        command_type: CommandType::MouseDown,
+                                        data1: 1,
+                                        data2: 1,
+                                    };
+                                    scene.queue_command(mouse_down);
+                                    window.request_redraw();
+                                }
+                                _ => {}
+                            },
+                            ElementState::Released => match button {
+                                MouseButton::Left => {
+                                    let mouse_up = Command {
+                                        command_type: CommandType::MouseUp,
+                                        data1: 1,
+                                        data2: 1,
+                                    };
+                                    scene.queue_command(mouse_up);
+                                    window.request_redraw();
+                                }
+                                _ => {}
+                            },
+                        }
+                    }
+                    glium::winit::event::WindowEvent::CursorMoved {
+                        device_id,
+                        position,
+                    } => {
+                        // Ignore the device ID for now.
+                        _ = device_id;
+                        let delta_x: i32 = position.x as i32 - last_cursor_position.0;
+                        let delta_y: i32 = position.y as i32 - last_cursor_position.1;
+
+                        if delta_x != 0 || delta_y != 0 {
+                            let mouse_moved = Command {
+                                command_type: CommandType::MouseMoved,
+                                data1: position.x as u32,
+                                data2: position.y as u32,
+                            };
+                            scene.queue_command(mouse_moved);
+                            window.request_redraw();
+                        }
+                        last_cursor_position = (position.x as i32, position.y as i32);
                     }
                     _ => (),
                 },
                 glium::winit::event::Event::AboutToWait => {
+                    scene.process_commands();
                     window.request_redraw();
                 }
                 _ => (),

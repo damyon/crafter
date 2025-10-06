@@ -151,11 +151,10 @@ impl Scene {
     }
 
     /// Add a command to the queue of commands to process later.
-    pub fn queue_command(command: Command) {
-        let mut scene = Self::access();
-        scene.dirty = true;
+    pub fn queue_command(&mut self, command: Command) {
+        self.dirty = true;
 
-        scene.command_input.queue_command(command);
+        self.command_input.queue_command(command);
     }
 
     /// Change the global scene name.
@@ -176,26 +175,32 @@ impl Scene {
     }
 
     /// Process a mouse down event.
-    pub fn handle_mouse_down(scene: &mut Scene) {
-        scene.mouse.is_pressed = true;
+    pub fn handle_mouse_down(&mut self) {
+        println!("Mouse was pressed");
+
+        self.mouse.is_pressed = true;
     }
 
     /// Process a mouse up event.
-    pub fn handle_mouse_up(scene: &mut Scene) {
-        scene.mouse.is_pressed = false;
+    pub fn handle_mouse_up(&mut self) {
+        println!("Mouse was lifted");
+
+        self.mouse.is_pressed = false;
     }
 
     /// Process a mouse moved event.
-    pub fn handle_mouse_moved(command: &Command, scene: &mut Scene) {
+    pub fn handle_mouse_moved(&mut self, command: &Command) {
         let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
 
-        if scene.mouse.is_pressed {
+        if self.mouse.is_pressed {
+            println!("Mouse was moved when pressed");
+
             let position_diff = Point2::new(
-                current_position.x - scene.mouse.last_position.x,
-                current_position.y - scene.mouse.last_position.y,
+                current_position.x - self.mouse.last_position.x,
+                current_position.y - self.mouse.last_position.y,
             );
-            let current_camera_eye = scene.camera.eye;
-            let current_camera_target = scene.camera.target;
+            let current_camera_eye = self.camera.eye;
+            let current_camera_target = self.camera.target;
             let current_camera_direction = current_camera_target - current_camera_eye;
 
             let current_camera_distance = (current_camera_direction.x.powf(2.0f32)
@@ -218,17 +223,17 @@ impl Scene {
                 position_diff.x as f32 / blunting,
             );
 
-            scene.camera.eye = Point3::new(adjusted.x, current_camera_eye.y, adjusted.y);
+            self.camera.eye = Point3::new(adjusted.x, current_camera_eye.y, adjusted.y);
 
             // Up down does not need rotation.
 
-            scene.camera.eye.y += position_diff.y as f32 / 10.0f32;
+            self.camera.eye.y += position_diff.y as f32 / 10.0f32;
 
-            let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-            scene.model.optimize(camera_eye);
-            scene.invalidate_drawables_cache();
+            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+            self.model.optimize(camera_eye);
+            self.invalidate_drawables_cache();
         }
-        scene.mouse.last_position = current_position;
+        self.mouse.last_position = current_position;
     }
 
     /// The key was pressed to move up.
@@ -481,31 +486,29 @@ impl Scene {
     }
 
     /// Process the command queue.
-    pub fn process_commands() {
-        let mut scene = Self::access();
-
-        let mut command_opt = scene.command_input.next();
+    pub fn process_commands(&mut self) {
+        let mut command_opt = self.command_input.next();
 
         while let Some(command) = command_opt {
             match command.command_type {
                 CommandType::MouseDown => {
-                    Self::handle_mouse_down(&mut scene);
+                    self.handle_mouse_down();
                 }
                 CommandType::MouseUp => {
-                    Self::handle_mouse_up(&mut scene);
+                    self.handle_mouse_up();
                 }
                 CommandType::MouseMoved => {
-                    Self::handle_mouse_moved(&command, &mut scene);
+                    self.handle_mouse_moved(&command);
                 }
                 CommandType::KeyDown => {
-                    Self::handle_key_down(&command, &mut scene);
+                    //  Self::handle_key_down(&command, &mut scene);
                 }
                 CommandType::MouseScroll => {
-                    Self::handle_mouse_scroll(&command, &mut scene);
+                    //Self::handle_mouse_scroll(&command, &mut scene);
                 }
             }
 
-            command_opt = scene.command_input.next();
+            command_opt = self.command_input.next();
         }
     }
 
