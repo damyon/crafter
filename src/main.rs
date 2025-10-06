@@ -39,8 +39,6 @@ fn main() {
 
     // Start rendering by creating a new frame
     let mut frame = display.draw();
-    let mut last_cursor_position: (i32, i32) = (0, 0);
-    let mut mouse_button_pressed = false;
     // Which we fill with an opaque blue color
     frame.clear_color(0.3, 0.0, 1.0, 1.0);
     // By finishing the frame swap buffers and thereby make it visible on the window
@@ -111,19 +109,13 @@ fn main() {
                     } => {
                         // Ignore the device ID for now.
                         _ = device_id;
-                        let delta_x: i32 = position.x as i32 - last_cursor_position.0;
-                        let delta_y: i32 = position.y as i32 - last_cursor_position.1;
-
-                        if delta_x != 0 || delta_y != 0 {
-                            let mouse_moved = Command {
-                                command_type: CommandType::MouseMoved,
-                                data1: position.x as u32,
-                                data2: position.y as u32,
-                            };
-                            scene.queue_command(mouse_moved);
-                            window.request_redraw();
-                        }
-                        last_cursor_position = (position.x as i32, position.y as i32);
+                        let mouse_moved = Command {
+                            command_type: CommandType::MouseMoved,
+                            data1: position.x as u32,
+                            data2: position.y as u32,
+                        };
+                        scene.queue_command(mouse_moved);
+                        window.request_redraw();
                     }
                     _ => (),
                 },
