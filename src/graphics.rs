@@ -12,9 +12,7 @@ use glutin::surface::WindowSurface;
 use nalgebra::*;
 
 /// All the things we need to know to render to the screen.
-pub struct Graphics<'a> {
-    pub display: &'a Display<WindowSurface>,
-    pub frame: &'a mut Frame,
+pub struct Graphics {
     pub canvas_width: u32,
     pub canvas_height: u32,
     pub camera_program: Option<Program>,
@@ -25,17 +23,10 @@ pub struct Graphics<'a> {
     pub swap_cameras: bool,
 }
 
-impl<'a> Graphics<'a> {
+impl Graphics {
     /// Create a new Graphics container with default values.
-    pub fn new(
-        display: &'a Display<WindowSurface>,
-        frame: &'a mut Frame,
-        canvas_width: u32,
-        canvas_height: u32,
-    ) -> Graphics<'a> {
+    pub fn new(canvas_width: u32, canvas_height: u32) -> Graphics {
         Graphics {
-            display,
-            frame,
             canvas_width,
             canvas_height,
             camera_program: None,
@@ -48,10 +39,10 @@ impl<'a> Graphics<'a> {
     }
 
     /// Create a texture large enough to record depth values for shadow mapping.
-    pub fn create_shadow_depth_texture(&mut self) {
+    pub fn create_shadow_depth_texture(&mut self, display: &Display<WindowSurface>) {
         self.shadow_depth_texture = Some(
             Texture2d::empty_with_format(
-                self.display,
+                display,
                 UncompressedFloatFormat::F32F32F32F32, // Example format: RGBA with 32-bit floats
                 MipmapsOption::NoMipmap,               // No mipmaps for this example
                 self.shadow_texture_size,
@@ -92,14 +83,14 @@ impl<'a> Graphics<'a> {
     }
 
     /// Compile the various shaders.
-    pub fn setup_shaders(&mut self) {
-        self.light_program = Some(self.setup_light_shaders());
-        self.camera_program = Some(self.setup_camera_shaders());
-        self.create_shadow_depth_texture();
+    pub fn setup_shaders(&mut self, display: &Display<WindowSurface>) {
+        self.light_program = Some(self.setup_light_shaders(display));
+        self.camera_program = Some(self.setup_camera_shaders(display));
+        self.create_shadow_depth_texture(display);
     }
 
     /// Compile the light shaders.
-    pub fn setup_light_shaders(&mut self) -> Program {
+    pub fn setup_light_shaders(&mut self, display: &Display<WindowSurface>) -> Program {
         let vertex_shader_source = "#version 460
                 in vec3 position;
 
@@ -127,7 +118,7 @@ impl<'a> Graphics<'a> {
                 ";
 
         let program = glium::Program::from_source(
-            self.display,
+            display,
             vertex_shader_source,
             fragment_shader_source,
             None,
@@ -140,7 +131,7 @@ impl<'a> Graphics<'a> {
     }
 
     /// Compile the camera shaders.
-    pub fn setup_camera_shaders(&mut self) -> Program {
+    pub fn setup_camera_shaders(&mut self, display: &Display<WindowSurface>) -> Program {
         let vertex_shader_source = "#version 460
                 in vec3 position;
                 in vec3 normal;
@@ -265,7 +256,7 @@ impl<'a> Graphics<'a> {
                 ";
 
         let program = glium::Program::from_source(
-            self.display,
+            display,
             vertex_shader_source,
             fragment_shader_source,
             None,
@@ -278,9 +269,14 @@ impl<'a> Graphics<'a> {
     }
 
     /// Render to the shadow buffer so we can compute shadows.
-    pub fn draw_shadow(&mut self, drawable: &impl Drawable, light: Camera) {
+    pub fn draw_shadow(
+        &mut self,
+        display: &Display<WindowSurface>,
+        drawable: &impl Drawable,
+        light: Camera,
+    ) {
         let vertices_buffer =
-            glium::VertexBuffer::new(self.display, drawable.vertices().as_slice()).unwrap();
+            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         let eye = light.eye;
@@ -331,9 +327,17 @@ impl<'a> Graphics<'a> {
     }
 
     /// Render to the actual color buffer.
-    pub fn draw(&mut self, drawable: &impl Drawable, camera: Camera, light: Camera, elapsed: f32) {
+    pub fn draw(
+        &mut self,
+        display: &Display<WindowSurface>,
+        frame: &mut Frame,
+        drawable: &impl Drawable,
+        camera: Camera,
+        light: Camera,
+        elapsed: f32,
+    ) {
         let vertices_buffer =
-            glium::VertexBuffer::new(self.display, drawable.vertices().as_slice()).unwrap();
+            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         println!("Vertices buffer: {:?}", vertices_buffer.len());
@@ -396,7 +400,7 @@ impl<'a> Graphics<'a> {
             }),
             ..Default::default()
         };
-        self.frame
+        frame
             .draw(
                 &vertices_buffer,
                 &indices,
@@ -414,9 +418,8 @@ impl<'a> Graphics<'a> {
     pub fn finish_shadow_frame(&self) {}
 
     /// Prepare the camera frame.
-    pub fn prepare_camera_frame(&mut self) {
-        self.frame
-            .clear_color_srgb_and_depth((0.5, 0.5, 0.7, 1.0), 1.0);
+    pub fn prepare_camera_frame(&mut self, frame: &mut Frame) {
+        frame.clear_color_srgb_and_depth((0.5, 0.5, 0.7, 1.0), 1.0);
     }
 
     /// We are done with the camera frame.

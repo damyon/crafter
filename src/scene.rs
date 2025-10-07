@@ -9,6 +9,9 @@ use crate::ocnode::Ocnode;
 use crate::storage::Storage;
 use crate::stored_octree::StoredOctree;
 use crate::{camera::Camera, cube::Cube};
+use glium::Frame;
+use glium::backend::glutin::Display;
+use glutin::surface::WindowSurface;
 use nalgebra::{Point2, Point3, Vector3};
 use std::cmp::{max, min};
 use std::sync::{Mutex, MutexGuard};
@@ -825,7 +828,12 @@ impl Scene {
     }
 
     /// Draw the scene.
-    pub fn draw(&mut self, graphics: &mut Graphics) {
+    pub fn draw(
+        &mut self,
+        display: &Display<WindowSurface>,
+        frame: &mut Frame,
+        graphics: &mut Graphics,
+    ) {
         self.elapsed += 0.01;
         graphics.prepare_shadow_frame();
 
@@ -842,13 +850,13 @@ impl Scene {
 
         if !graphics.swap_shaders {
             for voxel in self.model.drawables().iter() {
-                graphics.draw_shadow(voxel, light);
+                graphics.draw_shadow(display, voxel, light);
             }
         }
 
         graphics.finish_shadow_frame();
 
-        graphics.prepare_camera_frame();
+        graphics.prepare_camera_frame(frame);
 
         let selections = Self::selection_voxels(
             &self.selection_position,
@@ -862,10 +870,17 @@ impl Scene {
                 selection[1] as f32 + 0.1,
                 selection[2] as f32 + 0.1,
             ];
-            graphics.draw(&self.selection_cube, camera, light, self.elapsed);
+            graphics.draw(
+                display,
+                frame,
+                &self.selection_cube,
+                camera,
+                light,
+                self.elapsed,
+            );
         }
         if self.grid_visible {
-            graphics.draw(&self.grid_xz, camera, light, self.elapsed);
+            graphics.draw(display, frame, &self.grid_xz, camera, light, self.elapsed);
         }
 
         if self.drawables_cache.len() == 0 {
@@ -882,7 +897,7 @@ impl Scene {
         }
 
         for voxel in self.drawables_cache.iter() {
-            graphics.draw(voxel, camera, light, self.elapsed);
+            graphics.draw(display, frame, voxel, camera, light, self.elapsed);
         }
 
         graphics.finish_camera_frame();

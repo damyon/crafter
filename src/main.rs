@@ -39,6 +39,10 @@ fn main() {
         .with_title("Crafter")
         .with_inner_size(800, 600)
         .build(&event_loop);
+    let (width, height) = display.get_framebuffer_dimensions();
+
+    let mut graphics: Graphics = Graphics::new(width, height);
+    graphics.setup_shaders(&display);
 
     #[allow(deprecated)]
     event_loop
@@ -55,12 +59,8 @@ fn main() {
                     glium::winit::event::WindowEvent::RedrawRequested => {
                         let start = Instant::now();
                         let mut frame = display.draw();
-                        let (width, height) = display.get_framebuffer_dimensions();
-                        let mut graphics: Graphics =
-                            Graphics::new(&display, &mut frame, width, height);
-                        graphics.setup_shaders();
                         // By finishing the frame swap buffers and thereby make it visible on the window
-                        scene.draw(&mut graphics);
+                        scene.draw(&display, &mut frame, &mut graphics);
                         frame.finish().unwrap();
                         let end = Instant::now();
                         println!("Frame time: {:?}", end - start);
