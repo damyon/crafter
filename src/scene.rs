@@ -835,23 +835,11 @@ impl Scene {
         graphics: &mut Graphics,
     ) {
         self.elapsed += 0.01;
+
         graphics.prepare_shadow_frame();
 
-        let light = if !graphics.swap_cameras {
-            self.light
-        } else {
-            self.camera
-        };
-        let camera = if !graphics.swap_cameras {
-            self.camera
-        } else {
-            self.light
-        };
-
-        if !graphics.swap_shaders {
-            for voxel in self.model.drawables().iter() {
-                graphics.draw_shadow(display, voxel, light);
-            }
+        for voxel in self.model.drawables().iter() {
+            graphics.draw_shadow(display, voxel, self.light);
         }
 
         graphics.finish_shadow_frame();
@@ -874,13 +862,20 @@ impl Scene {
                 display,
                 frame,
                 &self.selection_cube,
-                camera,
-                light,
+                self.camera,
+                self.light,
                 self.elapsed,
             );
         }
         if self.grid_visible {
-            graphics.draw(display, frame, &self.grid_xz, camera, light, self.elapsed);
+            graphics.draw(
+                display,
+                frame,
+                &self.grid_xz,
+                self.camera,
+                self.light,
+                self.elapsed,
+            );
         }
 
         if self.drawables_cache.len() == 0 {
@@ -897,10 +892,11 @@ impl Scene {
         }
 
         for voxel in self.drawables_cache.iter() {
-            graphics.draw(display, frame, voxel, camera, light, self.elapsed);
+            graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
         }
 
         graphics.finish_camera_frame();
+
         // We are only rendering when idle, so we can skip the throttling.
         // Continuous rendering is needed to animate the fluid.
         //scene.dirty = false;

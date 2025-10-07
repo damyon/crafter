@@ -429,7 +429,7 @@ impl Ocnode {
     }
 
     /// Generate a list of drawables from the active cubes in this one.
-    pub fn drawables(&mut self, root: &Ocnode) -> Vec<Cube> {
+    pub fn drawables(&mut self) -> Vec<Cube> {
         if self.has_children {
             if self.active {
                 let scale = self.resolution(self.sub_division_level) as f32;
@@ -441,12 +441,12 @@ impl Ocnode {
                 cube.scale = scale;
                 cube.smooth = true;
 
-                cube.bottom_occluded = self.bottom_occluded(root);
-                cube.left_occluded = self.left_occluded(root);
-                cube.right_occluded = self.right_occluded(root);
-                cube.front_occluded = self.front_occluded(root);
-                cube.back_occluded = self.back_occluded(root);
-                cube.top_occluded = self.top_occluded(root);
+                cube.bottom_occluded = false;
+                cube.left_occluded = false;
+                cube.right_occluded = false;
+                cube.front_occluded = false;
+                cube.back_occluded = false;
+                cube.top_occluded = false;
                 cube.init();
 
                 let x = self.x_index as f32 * (1.0);
@@ -463,7 +463,7 @@ impl Ocnode {
                     match node_opt {
                         None => {}
                         Some(node) => {
-                            let mut cube = node.drawables(root);
+                            let mut cube = node.drawables();
 
                             child_cubes.append(&mut cube);
                         }
@@ -481,12 +481,12 @@ impl Ocnode {
             cube.scale = scale;
             cube.smooth = true;
 
-            cube.bottom_occluded = self.bottom_occluded(root);
-            cube.left_occluded = self.left_occluded(root);
-            cube.right_occluded = self.right_occluded(root);
-            cube.front_occluded = self.front_occluded(root);
-            cube.back_occluded = self.back_occluded(root);
-            cube.top_occluded = self.top_occluded(root);
+            cube.bottom_occluded = false;
+            cube.left_occluded = false;
+            cube.right_occluded = false;
+            cube.front_occluded = false;
+            cube.back_occluded = false;
+            cube.top_occluded = false;
             cube.init();
 
             let x = self.x_index as f32 * (scale);

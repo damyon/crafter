@@ -62,8 +62,7 @@ impl Octree {
 
     /// Generate the list of drawables from the tree of cubes.
     pub fn drawables(&mut self) -> Vec<Cube> {
-        let borrow = self.root.clone();
-        self.root.drawables(&borrow)
+        self.root.drawables()
     }
 
     /// Subdivide the tree into smaller cubes.
