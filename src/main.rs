@@ -2,10 +2,8 @@ use crate::command::Command;
 use crate::command::CommandType;
 use crate::graphics::Graphics;
 use crate::scene::Scene;
-use glium::Surface;
 use glium::winit::event::ElementState;
 use glium::winit::event::MouseButton;
-use glium::winit::event_loop::ControlFlow;
 use std::time::Instant;
 mod graphics;
 
@@ -26,7 +24,6 @@ mod vertex;
 
 fn main() {
     let mut scene = Scene::new();
-    const TARGET_FPS: u64 = 60;
 
     scene.init();
     // We start by creating the EventLoop, this can only be done once per process.
@@ -47,7 +44,6 @@ fn main() {
     #[allow(deprecated)]
     event_loop
         .run(move |event, window_target| {
-            let start_time = Instant::now();
             match event {
                 glium::winit::event::Event::WindowEvent { event, .. } => match event {
                     // This event is sent by the OS when you close the Window, or request the program to quit via the taskbar.
@@ -57,13 +53,16 @@ fn main() {
                     }
 
                     glium::winit::event::WindowEvent::RedrawRequested => {
-                        let start = Instant::now();
-                        let mut frame = display.draw();
-                        // By finishing the frame swap buffers and thereby make it visible on the window
-                        scene.draw(&display, &mut frame, &mut graphics);
-                        frame.finish().unwrap();
-                        let end = Instant::now();
-                        println!("Frame time: {:?}", end - start);
+                        scene.process_commands();
+                        if scene.throttle() {
+                            let start = Instant::now();
+                            let mut frame = display.draw();
+                            // By finishing the frame swap buffers and thereby make it visible on the window
+                            scene.draw(&display, &mut frame, &mut graphics);
+                            frame.finish().unwrap();
+                            let end = Instant::now();
+                            println!("Frame time: {:?}", end - start);
+                        }
                     }
                     glium::winit::event::WindowEvent::MouseInput {
                         device_id,
@@ -81,7 +80,6 @@ fn main() {
                                         data2: 1,
                                     };
                                     scene.queue_command(mouse_down);
-                                    scene.process_commands();
                                 }
                                 _ => {}
                             },
@@ -93,7 +91,6 @@ fn main() {
                                         data2: 1,
                                     };
                                     scene.queue_command(mouse_up);
-                                    scene.process_commands();
                                 }
                                 _ => {}
                             },

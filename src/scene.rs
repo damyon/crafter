@@ -14,7 +14,6 @@ use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
 use nalgebra::{Point2, Point3, Vector3};
 use std::cmp::{max, min};
-use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 /// Simple list of supported selection shapes.
@@ -76,6 +75,8 @@ pub struct Scene {
     target_fps: u32,
     /// Only recalculate the drawables cache if the scene has changed.
     drawables_cache: Vec<Cube>,
+    /// Only recalculate the selection voxels cache if the scene has changed.
+    selection_cache: Vec<[i32; 3]>,
 }
 
 impl Scene {
@@ -101,8 +102,9 @@ impl Scene {
             elapsed: 0.0,
             last_draw: None,
             grid_visible: true,
-            target_fps: 1,
+            target_fps: 30,
             drawables_cache: Vec::new(),
+            selection_cache: Vec::new(),
         }
     }
 
@@ -124,47 +126,11 @@ impl Scene {
         Point2::new(rotated.x + pivot.x, rotated.y + pivot.y)
     }
 
-    /// Used to lock/release a global scene ref.
-    fn access() -> MutexGuard<'static, Scene> {
-        static GLOBSTATE: Mutex<Scene> = Mutex::new(Scene {
-            camera: Camera::new(),
-            light: Camera::new(),
-            mouse: Mouse::new(),
-            command_input: CommandQueue::new(),
-            selection_cube: Cube::new(),
-            grid_xz: Grid::new(),
-            model: Model::new(),
-            selection_position: [0, 0, 0],
-            selection_radius: 1,
-            selection_shape: SelectionShape::Sphere,
-            material_color: [0.8, 0.8, 0.8, 1.0],
-            drawing: false,
-            throttle: 10,
-            loading: true,
-            fluid: 0,
-            noise: 0,
-            dirty: true,
-            elapsed: 0.0,
-            last_draw: None,
-            grid_visible: true,
-            target_fps: 1,
-            drawables_cache: Vec::new(),
-        });
-        GLOBSTATE.lock().unwrap()
-    }
-
     /// Add a command to the queue of commands to process later.
     pub fn queue_command(&mut self, command: Command) {
         self.dirty = true;
 
         self.command_input.queue_command(command);
-    }
-
-    /// Change the global scene name.
-    pub fn set_scene_name(name: String) {
-        let mut scene = Self::access();
-
-        scene.set_name(name);
     }
 
     /// Change this scene name.
@@ -175,6 +141,11 @@ impl Scene {
     /// Something changed - we need to recalculate the drawables cache.
     pub fn invalidate_drawables_cache(&mut self) {
         self.drawables_cache.clear();
+    }
+
+    /// Something changed - we need to recalculate the selection cache.
+    pub fn invalidate_selection_cache(&mut self) {
+        self.selection_cache.clear();
     }
 
     /// Process a mouse down event.
@@ -240,250 +211,241 @@ impl Scene {
     }
 
     /// The key was pressed to move up.
-    pub fn handle_move_up(scene: &mut Scene) {
-        scene.camera.eye = Point3::new(
-            scene.camera.eye.x,
-            scene.camera.eye.y + 0.1_f32,
-            scene.camera.eye.z,
+    pub fn handle_move_up(&mut self) {
+        self.camera.eye = Point3::new(
+            self.camera.eye.x,
+            self.camera.eye.y + 0.1_f32,
+            self.camera.eye.z,
         );
-        scene.camera.target = Point3::new(
-            scene.camera.target.x,
-            scene.camera.target.y + 0.1_f32,
-            scene.camera.target.z,
+        self.camera.target = Point3::new(
+            self.camera.target.x,
+            self.camera.target.y + 0.1_f32,
+            self.camera.target.z,
         );
 
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.optimize(camera_eye);
-        scene.invalidate_drawables_cache();
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.optimize(camera_eye);
+        self.invalidate_drawables_cache();
     }
 
     /// The key was pressed to move down.
-    pub fn handle_move_down(scene: &mut Scene) {
-        scene.camera.eye = Point3::new(
-            scene.camera.eye.x,
-            scene.camera.eye.y - 0.1_f32,
-            scene.camera.eye.z,
+    pub fn handle_move_down(&mut self) {
+        self.camera.eye = Point3::new(
+            self.camera.eye.x,
+            self.camera.eye.y - 0.1_f32,
+            self.camera.eye.z,
         );
-        scene.camera.target = Point3::new(
-            scene.camera.target.x,
-            scene.camera.target.y - 0.1_f32,
-            scene.camera.target.z,
+        self.camera.target = Point3::new(
+            self.camera.target.x,
+            self.camera.target.y - 0.1_f32,
+            self.camera.target.z,
         );
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.optimize(camera_eye);
-        scene.invalidate_drawables_cache();
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.optimize(camera_eye);
+        self.invalidate_drawables_cache();
     }
 
     /// The key was pressed to move left.
-    pub fn handle_move_left(scene: &mut Scene) {
-        let diff = scene.camera.target - scene.camera.eye;
+    pub fn handle_move_left(&mut self) {
+        let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
         //To rotate a vector 90 degrees clockwise, you can change the coordinates from (x,y) to (y,−x).
         let projection = Vector3::new(diff.z, 0.0, -diff.x) / blunting;
 
-        scene.camera.eye += projection;
-        scene.camera.target += projection;
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.optimize(camera_eye);
-        scene.invalidate_drawables_cache();
+        self.camera.eye += projection;
+        self.camera.target += projection;
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.optimize(camera_eye);
+        self.invalidate_drawables_cache();
     }
 
     /// The key was pressed to move right.
-    pub fn handle_move_right(scene: &mut Scene) {
-        let diff = scene.camera.target - scene.camera.eye;
+    pub fn handle_move_right(&mut self) {
+        let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
         //To rotate a vector 90 degrees clockwise, you can change the coordinates from (x,y) to (y,−x).
         let projection = Vector3::new(diff.z, 0.0, -diff.x) / blunting;
 
-        scene.camera.eye -= projection;
-        scene.camera.target -= projection;
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.optimize(camera_eye);
-        scene.invalidate_drawables_cache();
+        self.camera.eye -= projection;
+        self.camera.target -= projection;
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.optimize(camera_eye);
+        self.invalidate_drawables_cache();
     }
 
     /// The key was pressed to move forward.
-    pub fn handle_move_forward(scene: &mut Scene) {
-        let diff = scene.camera.target - scene.camera.eye;
+    pub fn handle_move_forward(&mut self) {
+        let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
         let projection = Vector3::new(diff.x, 0.0, diff.z) / blunting;
 
-        scene.camera.eye += projection;
-        scene.camera.target += projection;
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.optimize(camera_eye);
-        scene.invalidate_drawables_cache();
+        self.camera.eye += projection;
+        self.camera.target += projection;
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.optimize(camera_eye);
+        self.invalidate_drawables_cache();
     }
 
     /// The key was pressed to move backwards.
-    pub fn handle_move_backward(scene: &mut Scene) {
-        let diff = scene.camera.target - scene.camera.eye;
+    pub fn handle_move_backward(&mut self) {
+        let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
         let projection = Vector3::new(-diff.x, 0.0, -diff.z) / blunting;
 
-        scene.camera.eye += projection;
-        scene.camera.target += projection;
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.optimize(camera_eye);
-        scene.invalidate_drawables_cache();
+        self.camera.eye += projection;
+        self.camera.target += projection;
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.optimize(camera_eye);
+        self.invalidate_drawables_cache();
     }
 
     /// The key was pressed to toggle the state of the current selection.
-    pub fn handle_toggle_voxel(scene: &mut Scene) {
+    pub fn handle_toggle_voxel(&mut self) {
         let selections = Self::selection_voxels(
-            &scene.selection_position,
-            scene.selection_radius as i32,
-            scene.selection_shape,
+            &self.selection_position,
+            self.selection_radius as i32,
+            self.selection_shape,
         );
 
-        let value: bool = scene.model.all_voxels_active(&selections);
+        let value: bool = self.model.all_voxels_active(&selections);
         let count = selections.len();
-        let fluid = scene.fluid;
-        let noise = scene.noise;
+        let fluid = self.fluid;
+        let noise = self.noise;
         if value {
             log::info!("Toggle all voxels active: FALSE {count} {fluid} {noise}");
         } else {
             log::info!("Toggle all voxels active: TRUE {count} {fluid} {noise}");
         }
         let color = [
-            (scene.material_color[0]).clamp(0.0, 1.0),
-            (scene.material_color[1]).clamp(0.0, 1.0),
-            (scene.material_color[2]).clamp(0.0, 1.0),
-            (scene.material_color[3]).clamp(0.0, 1.0),
+            (self.material_color[0]).clamp(0.0, 1.0),
+            (self.material_color[1]).clamp(0.0, 1.0),
+            (self.material_color[2]).clamp(0.0, 1.0),
+            (self.material_color[3]).clamp(0.0, 1.0),
         ];
-        let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-        scene.model.toggle_voxels(
-            selections,
-            !value,
-            color,
-            camera_eye,
-            scene.fluid,
-            scene.noise,
+        let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+        self.model.toggle_voxels(
+            selections, !value, color, camera_eye, self.fluid, self.noise,
         );
-        scene.invalidate_drawables_cache();
+        self.invalidate_selection_cache();
+        self.invalidate_drawables_cache();
     }
 
     /// Save the scene to the browser.
-    pub async fn save_scene() {
-        // The point of this scope shananigens is the model save operation is slow
-        // and doesn't need access to anything from scope outside of the model.
-        let model: Model = {
-            let scene = Self::access();
-            scene.model.clone()
-        };
-        model.save().await;
+    pub async fn save_scene(&self) {
+        self.model.save().await;
     }
 
     /// Move the selection shape left.
-    pub fn handle_move_selection_left(scene: &mut Scene) {
-        scene.selection_cube.translate([-1.0, 0.0, 0.0]);
-        scene.selection_position[0] -= 1;
+    pub fn handle_move_selection_left(&mut self) {
+        self.selection_cube.translate([-1.0, 0.0, 0.0]);
+        self.selection_position[0] -= 1;
+        self.invalidate_selection_cache();
     }
 
     /// Move the selection shape right.
-    pub fn handle_move_selection_right(scene: &mut Scene) {
-        scene.selection_cube.translate([1.0, 0.0, 0.0]);
-        scene.selection_position[0] += 1;
+    pub fn handle_move_selection_right(&mut self) {
+        self.selection_cube.translate([1.0, 0.0, 0.0]);
+        self.selection_position[0] += 1;
+        self.invalidate_selection_cache();
     }
 
     /// Move the selection shape forward.
-    pub fn handle_move_selection_forward(scene: &mut Scene) {
-        scene.selection_cube.translate([0.0, 0.0, 1.0]);
-        scene.selection_position[2] += 1;
+    pub fn handle_move_selection_forward(&mut self) {
+        self.selection_cube.translate([0.0, 0.0, 1.0]);
+        self.selection_position[2] += 1;
+        self.invalidate_selection_cache();
     }
 
     /// Move the selection shape backward.
-    pub fn handle_move_selection_backward(scene: &mut Scene) {
-        scene.selection_cube.translate([0.0, 0.0, -1.0]);
-        scene.selection_position[2] -= 1;
+    pub fn handle_move_selection_backward(&mut self) {
+        self.selection_cube.translate([0.0, 0.0, -1.0]);
+        self.selection_position[2] -= 1;
+        self.invalidate_selection_cache();
     }
 
     /// Move the selection shape up.
-    pub fn handle_move_selection_up(scene: &mut Scene) {
-        scene.selection_cube.translate([0.0, 1.0, 0.0]);
-        scene.selection_position[1] += 1;
+    pub fn handle_move_selection_up(&mut self) {
+        self.selection_cube.translate([0.0, 1.0, 0.0]);
+        self.selection_position[1] += 1;
+        self.invalidate_selection_cache();
     }
 
     /// Move the selection shape down.
-    pub fn handle_move_selection_down(scene: &mut Scene) {
-        scene.selection_cube.translate([0.0, -1.0, 0.0]);
-        scene.selection_position[1] -= 1;
-    }
-
-    /// Hide or show the selection shape for the global scene.
-    pub fn scene_toggle_selection_shape() {
-        let mut scene = Self::access();
-
-        Self::handle_toggle_selection_shape(&mut scene);
+    pub fn handle_move_selection_down(&mut self) {
+        self.selection_cube.translate([0.0, -1.0, 0.0]);
+        self.selection_position[1] -= 1;
+        self.invalidate_selection_cache();
     }
 
     /// Hide or show the selection shape.
-    pub fn handle_toggle_selection_shape(scene: &mut Scene) {
-        scene.selection_shape = if scene.selection_shape == SelectionShape::Sphere {
+    pub fn handle_toggle_selection_shape(&mut self) {
+        self.selection_shape = if self.selection_shape == SelectionShape::Sphere {
             SelectionShape::Cube
-        } else if scene.selection_shape == SelectionShape::Cube {
+        } else if self.selection_shape == SelectionShape::Cube {
             SelectionShape::SquareXZ
-        } else if scene.selection_shape == SelectionShape::SquareXZ {
+        } else if self.selection_shape == SelectionShape::SquareXZ {
             SelectionShape::SquareXY
-        } else if scene.selection_shape == SelectionShape::SquareXY {
+        } else if self.selection_shape == SelectionShape::SquareXY {
             SelectionShape::SquareYZ
-        } else if scene.selection_shape == SelectionShape::SquareYZ {
+        } else if self.selection_shape == SelectionShape::SquareYZ {
             SelectionShape::CircleXZ
-        } else if scene.selection_shape == SelectionShape::CircleXZ {
+        } else if self.selection_shape == SelectionShape::CircleXZ {
             SelectionShape::CircleXY
-        } else if scene.selection_shape == SelectionShape::CircleXY {
+        } else if self.selection_shape == SelectionShape::CircleXY {
             SelectionShape::CircleYZ
         } else {
             SelectionShape::Sphere
-        }
+        };
+        self.invalidate_selection_cache();
     }
 
     /// Handle the mouse scroll.
-    pub fn handle_mouse_scroll(command: &Command, scene: &mut Scene) {
+    pub fn handle_mouse_scroll(&mut self, command: &Command) {
         let direction: u32 = command.data1;
         let max_selection_radius: u32 = 32;
         let min_selection_radius: u32 = 1;
 
         if direction > 0 {
-            scene.selection_radius = min(scene.selection_radius + 1, max_selection_radius);
+            self.selection_radius = min(self.selection_radius + 1, max_selection_radius);
         } else {
-            scene.selection_radius = max(scene.selection_radius - 1, min_selection_radius);
+            self.selection_radius = max(self.selection_radius - 1, min_selection_radius);
         }
+        self.invalidate_selection_cache();
     }
 
     /// Handle a key press.
-    pub fn handle_key_down(command: &Command, scene: &mut Scene) {
+    pub fn handle_key_down(&mut self, command: &Command) {
         let key = command.data1;
 
         match key {
             // E
-            69 => Self::handle_move_up(scene),
+            69 => self.handle_move_up(),
             // C
-            67 => Self::handle_move_down(scene),
+            67 => self.handle_move_down(),
             // A or LEFT
-            65 | 37 => Self::handle_move_left(scene),
+            65 | 37 => self.handle_move_left(),
             // D or RIGHT
-            68 | 39 => Self::handle_move_right(scene),
+            68 | 39 => self.handle_move_right(),
             // W or UP
-            87 | 38 => Self::handle_move_forward(scene),
+            87 | 38 => self.handle_move_forward(),
             // S or X or DOWN
-            83 | 88 | 40 => Self::handle_move_backward(scene),
+            83 | 88 | 40 => self.handle_move_backward(),
             // SPACEBAR
-            32 => Self::handle_toggle_voxel(scene),
+            32 => self.handle_toggle_voxel(),
             // 4 or J
-            100 | 74 => Self::handle_move_selection_left(scene),
+            100 | 74 => self.handle_move_selection_left(),
             // 6 or L
-            102 | 76 => Self::handle_move_selection_right(scene),
+            102 | 76 => self.handle_move_selection_right(),
             // 2 or I
-            98 | 73 => Self::handle_move_selection_forward(scene),
+            98 | 73 => self.handle_move_selection_forward(),
             // 8 or K
-            104 | 75 => Self::handle_move_selection_backward(scene),
+            104 | 75 => self.handle_move_selection_backward(),
             // 9 | O
-            105 | 79 => Self::handle_move_selection_up(scene),
+            105 | 79 => self.handle_move_selection_up(),
             // 3 | P
-            99 | 80 => Self::handle_move_selection_down(scene),
+            99 | 80 => self.handle_move_selection_down(),
             // T
-            //84 => Self::handle_toggle_selection_shape(scene),
+            //84 => self.handle_toggle_selection_shape(scene),
             _ => log::info!("Unhandled key press: {}", key),
         }
     }
@@ -515,56 +477,37 @@ impl Scene {
         }
     }
 
-    /// Create a new scene.
-    pub fn init_scene() {
-        let mut scene = Self::access();
-        scene.init();
-    }
-
     /// Should we render the current frame?
-    pub fn throttle() -> bool {
-        let mut scene = Self::access();
-
-        if !scene.dirty {
+    pub fn throttle(&mut self) -> bool {
+        if !self.dirty {
             return true;
         }
 
-        if scene.loading {
+        if self.loading {
             return true;
         }
 
-        if !scene.drawing {
+        if !self.drawing {
             return true;
         }
 
-        scene.throttle -= 1;
-        if scene.throttle >= 1 {
+        self.throttle -= 1;
+        if self.throttle >= 1 {
             return true;
         }
-        scene.throttle = 2;
+        self.throttle = 2;
 
         let now = Instant::now();
-        let target_fps = scene.target_fps;
+        let target_fps = self.target_fps;
         let target_delay = Duration::from_millis(1000 / target_fps as u64);
-        if scene.last_draw.is_some() {
-            let last = scene.last_draw.expect("last_draw is None");
+        if self.last_draw.is_some() {
+            let last = self.last_draw.expect("last_draw is None");
             if now.duration_since(last).cmp(&target_delay).is_lt() {
                 return true;
             }
         }
-        scene.last_draw = Some(now);
+        self.last_draw = Some(now);
         false
-    }
-
-    /// Change the active color.
-    pub fn set_scene_material_color(
-        red_str: &str,
-        green_str: &str,
-        blue_str: &str,
-        alpha_str: &str,
-    ) {
-        let mut scene = Self::access();
-        scene.set_material_color(red_str, green_str, blue_str, alpha_str);
     }
 
     /// Change the active color for this scene.
@@ -589,101 +532,87 @@ impl Scene {
     }
 
     /// Load a scene from the browser.
-    pub async fn load_scene() {
-        let mut scene = Self::access();
+    pub async fn load_scene(&mut self) {
         let name = {
-            scene.drawing = false;
-            scene.loading = true;
-            scene.model.voxels.name.clone()
+            self.drawing = false;
+            self.loading = true;
+            self.model.voxels.name.clone()
         };
 
         let storage = Storage::new();
         let serial: Option<StoredOctree> = storage.load_scene(name).await;
         if serial.is_some() {
-            let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-            scene
-                .model
+            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+            self.model
                 .voxels
                 .load_from_serial(serial.unwrap(), camera_eye);
-            scene.drawing = true;
-            scene.loading = false;
+            self.drawing = true;
+            self.loading = false;
         }
-        scene.invalidate_drawables_cache();
+        self.invalidate_drawables_cache();
     }
 
     /// Delete a scene from the browser.
-    pub async fn delete_scene() {
+    pub async fn delete_scene(&mut self) {
         let model = {
-            let mut scene = Self::access();
-
-            scene.model.voxels.clear();
-            scene.model.clone()
+            self.model.voxels.clear();
+            self.model.clone()
         };
         model.delete_scene().await;
     }
 
     /// Enable color noise.
-    pub async fn toggle_noise() {
-        let mut scene = Self::access();
-        scene.noise = 1;
+    pub async fn toggle_noise(&mut self) {
+        self.noise = 1;
     }
 
     /// Enable smoothing.
-    pub async fn toggle_smooth() {
-        let mut scene = Self::access();
-        scene.noise = 0;
+    pub async fn toggle_smooth(&mut self) {
+        self.noise = 0;
     }
 
     /// Enable solid material.
-    pub async fn toggle_solid() {
-        let mut scene = Self::access();
+    pub async fn toggle_solid(&mut self) {
         log::error!("Fluid goes off");
-        scene.fluid = 0;
+        self.fluid = 0;
     }
 
     /// Show grid.
-    pub async fn toggle_show_grid() {
-        let mut scene = Self::access();
+    pub async fn toggle_show_grid(&mut self) {
         log::error!("Grid goes on");
-        scene.grid_visible = true;
+        self.grid_visible = true;
     }
 
     /// Show grid.
-    pub async fn toggle_hide_grid() {
-        let mut scene = Self::access();
+    pub async fn toggle_hide_grid(&mut self) {
         log::error!("Grid goes off");
-        scene.grid_visible = false;
+        self.grid_visible = false;
     }
 
     /// Enable fluid.
-    pub async fn toggle_fluid() {
-        let mut scene = Self::access();
+    pub async fn toggle_fluid(&mut self) {
         log::error!("Fluid goes on");
-        scene.fluid = 1;
+        self.fluid = 1;
     }
 
-    pub async fn set_target_fps(fps: u32) {
-        let mut scene = Self::access();
-        scene.target_fps = fps;
+    pub async fn set_target_fps(&mut self, fps: u32) {
+        self.target_fps = fps;
     }
 
     /// Load the default scene.
-    pub async fn load_first_scene() {
+    pub async fn load_first_scene(&mut self) {
         let storage = Storage::new();
         let serial: Option<StoredOctree> = storage.load_first_scene().await;
         if serial.is_some() {
-            let mut scene = Self::access();
-            let camera_eye = [scene.camera.eye.x, scene.camera.eye.y, scene.camera.eye.z];
-            scene
-                .model
+            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+            self.model
                 .voxels
                 .load_from_serial(serial.unwrap(), camera_eye);
-            scene.drawing = true;
-            scene.loading = false;
+            self.drawing = true;
+            self.loading = false;
         } else {
-            let mut scene = Self::access();
-            scene.drawing = true;
-            scene.loading = false;
+            self.drawing = true;
+            self.loading = false;
         }
     }
 
@@ -698,7 +627,7 @@ impl Scene {
         self.grid_xz.rotate([90.0_f32.to_radians(), 0.0, 0.0]);
 
         self.model.init();
-        Self::handle_toggle_voxel(self);
+        self.handle_toggle_voxel();
     }
 
     /// Quicker than distance - no sqrt.
@@ -836,23 +765,24 @@ impl Scene {
     ) {
         self.elapsed += 0.01;
 
-        graphics.prepare_shadow_frame();
+        /*
+                graphics.prepare_shadow_frame();
 
-        for voxel in self.model.drawables().iter() {
-            graphics.draw_shadow(display, voxel, self.light);
-        }
+                for voxel in self.model.drawables().iter() {
+                    graphics.draw_shadow(display, voxel, self.light);
+                }
 
-        graphics.finish_shadow_frame();
-
+                graphics.finish_shadow_frame();
+        */
         graphics.prepare_camera_frame(frame);
-
-        let selections = Self::selection_voxels(
-            &self.selection_position,
-            self.selection_radius as i32,
-            self.selection_shape,
-        );
-
-        for selection in selections {
+        if self.selection_cache.len() == 0 {
+            self.selection_cache = Self::selection_voxels(
+                &self.selection_position,
+                self.selection_radius as i32,
+                self.selection_shape,
+            );
+        }
+        for selection in &self.selection_cache {
             self.selection_cube.translation = [
                 selection[0] as f32 + 0.1,
                 selection[1] as f32 + 0.1,
@@ -890,7 +820,7 @@ impl Scene {
             });
             self.drawables_cache = drawables;
         }
-
+        println!("Drawables size is {}", self.drawables_cache.len());
         for voxel in self.drawables_cache.iter() {
             graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
         }

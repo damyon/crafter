@@ -19,8 +19,6 @@ pub struct Graphics {
     pub light_program: Option<Program>,
     pub shadow_depth_texture: Option<Texture2d>,
     pub shadow_texture_size: u32,
-    pub swap_shaders: bool,
-    pub swap_cameras: bool,
 }
 
 impl Graphics {
@@ -33,8 +31,6 @@ impl Graphics {
             light_program: None,
             shadow_depth_texture: None,
             shadow_texture_size: 4096,
-            swap_shaders: false,
-            swap_cameras: false,
         }
     }
 
@@ -54,32 +50,18 @@ impl Graphics {
 
     /// Get the view from the light for calculating shadows.
     pub fn build_light_projection(&self) -> Matrix4<f32> {
-        if self.swap_cameras {
-            Perspective3::new(
-                self.canvas_width as f32 / self.canvas_height as f32,
-                std::f32::consts::PI / 4.0, // 45 degrees
-                1.0,
-                200.0,
-            )
-            .into_inner()
-        } else {
-            Orthographic3::new(-64.0, 64.0, -64.0, 64.0, 1.0, 240.0).into_inner()
-        }
+        Orthographic3::new(-64.0, 64.0, -64.0, 64.0, 1.0, 240.0).into_inner()
     }
 
     /// Get the view from the camera.
     pub fn build_camera_projection(&self) -> Matrix4<f32> {
-        if self.swap_cameras {
-            Orthographic3::new(-32.0, 32.0, -32.0, 32.0, 0.1, 120.0).into_inner()
-        } else {
-            Perspective3::new(
-                self.canvas_width as f32 / self.canvas_height as f32,
-                std::f32::consts::PI / 4.0, // 45 degrees
-                1.0,
-                200.0,
-            )
-            .into_inner()
-        }
+        Perspective3::new(
+            self.canvas_width as f32 / self.canvas_height as f32,
+            std::f32::consts::PI / 4.0, // 45 degrees
+            1.0,
+            200.0,
+        )
+        .into_inner()
     }
 
     /// Compile the various shaders.
@@ -419,7 +401,7 @@ impl Graphics {
 
     /// Prepare the camera frame.
     pub fn prepare_camera_frame(&mut self, frame: &mut Frame) {
-        frame.clear_color_srgb_and_depth((0.5, 0.5, 0.7, 1.0), 1.0);
+        frame.clear_color_and_depth((0.5, 0.5, 0.7, 1.0), 1.0);
     }
 
     /// We are done with the camera frame.
