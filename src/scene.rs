@@ -401,15 +401,16 @@ impl Scene {
 
     /// Handle the mouse scroll.
     pub fn handle_mouse_scroll(&mut self, command: &Command) {
-        let direction: u32 = command.data1;
+        let direction: u32 = command.data2;
         let max_selection_radius: u32 = 32;
         let min_selection_radius: u32 = 1;
-
+        println!("Handle mouse scroll {}", direction);
         if direction > 0 {
             self.selection_radius = min(self.selection_radius + 1, max_selection_radius);
         } else {
             self.selection_radius = max(self.selection_radius - 1, min_selection_radius);
         }
+        println!("New selection radius {}", self.selection_radius);
         self.invalidate_selection_cache();
     }
 
@@ -469,7 +470,7 @@ impl Scene {
                     //  Self::handle_key_down(&command, &mut scene);
                 }
                 CommandType::MouseScroll => {
-                    //Self::handle_mouse_scroll(&command, &mut scene);
+                    self.handle_mouse_scroll(&command);
                 }
             }
 
@@ -820,7 +821,6 @@ impl Scene {
             });
             self.drawables_cache = drawables;
         }
-        println!("Drawables size is {}", self.drawables_cache.len());
         for voxel in self.drawables_cache.iter() {
             graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
         }

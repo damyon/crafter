@@ -322,7 +322,6 @@ impl Graphics {
             glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
-        println!("Vertices buffer: {:?}", vertices_buffer.len());
         let color = drawable.color();
 
         // We need to calculate the model matrix for the drawable object

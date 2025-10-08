@@ -2,8 +2,13 @@ use crate::command::Command;
 use crate::command::CommandType;
 use crate::graphics::Graphics;
 use crate::scene::Scene;
-use glium::winit::event::ElementState;
-use glium::winit::event::MouseButton;
+use glium::backend::glutin::SimpleWindowBuilder;
+use glium::winit::event::Event::{AboutToWait, WindowEvent};
+use glium::winit::event::WindowEvent::{
+    CloseRequested, CursorMoved, MouseInput, MouseWheel, RedrawRequested, Resized,
+};
+use glium::winit::event::{ElementState, MouseButton, MouseScrollDelta};
+use glium::winit::event_loop::EventLoop;
 use std::time::Instant;
 mod graphics;
 
@@ -28,11 +33,9 @@ fn main() {
     scene.init();
     // We start by creating the EventLoop, this can only be done once per process.
     // This also needs to happen on the main thread to make the program portable.
-    let event_loop = glium::winit::event_loop::EventLoop::builder()
-        .build()
-        .expect("event loop building");
+    let event_loop = EventLoop::builder().build().expect("event loop building");
 
-    let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
+    let (window, display) = SimpleWindowBuilder::new()
         .with_title("Crafter")
         .with_inner_size(800, 600)
         .build(&event_loop);
@@ -45,14 +48,14 @@ fn main() {
     event_loop
         .run(move |event, window_target| {
             match event {
-                glium::winit::event::Event::WindowEvent { event, .. } => match event {
+                WindowEvent { event, .. } => match event {
                     // This event is sent by the OS when you close the Window, or request the program to quit via the taskbar.
-                    glium::winit::event::WindowEvent::CloseRequested => window_target.exit(),
-                    glium::winit::event::WindowEvent::Resized(window_size) => {
+                    CloseRequested => window_target.exit(),
+                    Resized(window_size) => {
                         display.resize(window_size.into());
                     }
 
-                    glium::winit::event::WindowEvent::RedrawRequested => {
+                    RedrawRequested => {
                         scene.process_commands();
                         if scene.throttle() {
                             let start = Instant::now();
@@ -61,10 +64,10 @@ fn main() {
                             scene.draw(&display, &mut frame, &mut graphics);
                             frame.finish().unwrap();
                             let end = Instant::now();
-                            println!("Frame time: {:?}", end - start);
+                            // println!("Frame time: {:?}", end - start);
                         }
                     }
-                    glium::winit::event::WindowEvent::MouseInput {
+                    MouseInput {
                         device_id,
                         state,
                         button,
@@ -96,7 +99,7 @@ fn main() {
                             },
                         }
                     }
-                    glium::winit::event::WindowEvent::CursorMoved {
+                    CursorMoved {
                         device_id,
                         position,
                     } => {
@@ -110,9 +113,22 @@ fn main() {
                         scene.queue_command(mouse_moved);
                         scene.process_commands();
                     }
+                    MouseWheel { delta, .. } => match delta {
+                        MouseScrollDelta::LineDelta(x, y) => {
+                            let mouse_wheel = Command {
+                                command_type: CommandType::MouseScroll,
+                                data1: x as u32,
+                                data2: y as u32,
+                            };
+                            println!("Mouse wheel scrolled: x={}, y={}", x, y);
+                            scene.queue_command(mouse_wheel);
+                            scene.process_commands();
+                        }
+                        _ => {}
+                    },
                     _ => (),
                 },
-                glium::winit::event::Event::AboutToWait => {
+                AboutToWait => {
                     window.request_redraw();
                 }
                 _ => (),
