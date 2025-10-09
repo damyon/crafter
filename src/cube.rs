@@ -1,6 +1,6 @@
 use crate::vertex::Vertex;
-
 use glium::index::PrimitiveType;
+
 /// A cube is a drawable item that can be positioned, rotated and scaled.
 #[derive(Copy, Clone)]
 pub struct Cube {
@@ -20,6 +20,7 @@ pub struct Cube {
     pub back_occluded: bool,
     pub top_occluded: bool,
     pub smooth: bool,
+    pub key: u64,
 }
 
 use nalgebra_glm::Vec3;
@@ -46,13 +47,20 @@ impl Cube {
             back_occluded: false,
             top_occluded: false,
             smooth: false,
+            key: 0,
         }
     }
 }
 
 impl Drawable for Cube {
     /// Init a new cube so it's ready to draw.
-    fn init(&mut self) {}
+    fn init(&mut self) {
+        self.key = rand::random();
+    }
+
+    fn key(&self) -> u64 {
+        self.key
+    }
 
     /// A cube always has the same number of vertices minus oclusion
     fn count_vertices(&self) -> u16 {

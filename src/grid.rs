@@ -14,6 +14,7 @@ pub struct Grid {
     pub color: [f32; 4],
     pub fluid: i32,
     pub noise: i32,
+    pub key: u64,
 }
 
 use crate::drawable::Drawable;
@@ -35,6 +36,7 @@ impl Grid {
             color: [0.5, 0.5, 0.5, 0.2],
             fluid: 0,
             noise: 0,
+            key: 0,
         }
     }
 }
@@ -104,6 +106,11 @@ impl Drawable for Grid {
 
         self.square_count = self.scale * self.scale;
         self.vertices_count = 2 * (6 * (self.scale + 1));
+
+        self.key = rand::random();
+    }
+    fn key(&self) -> u64 {
+        self.key
     }
 
     /// We calculated the number of vertices after we created it.

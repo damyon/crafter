@@ -1,5 +1,6 @@
 use crate::camera::Camera;
 use crate::drawable::Drawable;
+use crate::vertex::Vertex;
 use glium::Frame;
 use glium::Program;
 use glium::Surface;
@@ -10,6 +11,7 @@ use glium::texture::UncompressedFloatFormat;
 use glium::uniform;
 use glutin::surface::WindowSurface;
 use nalgebra::*;
+use std::collections::HashMap;
 
 /// All the things we need to know to render to the screen.
 pub struct Graphics {
@@ -19,6 +21,7 @@ pub struct Graphics {
     pub light_program: Option<Program>,
     pub shadow_depth_texture: Option<Texture2d>,
     pub shadow_texture_size: u32,
+    pub hash_map: HashMap<u64, Vec<Vertex>>,
 }
 
 impl Graphics {
@@ -31,6 +34,7 @@ impl Graphics {
             light_program: None,
             shadow_depth_texture: None,
             shadow_texture_size: 4096,
+            hash_map: HashMap::new(),
         }
     }
 
@@ -318,8 +322,15 @@ impl Graphics {
         light: Camera,
         elapsed: f32,
     ) {
-        let vertices_buffer =
-            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
+        if !self.hash_map.contains_key(&drawable.key()) {
+            self.hash_map.insert(drawable.key(), drawable.vertices());
+        }
+
+        let vertices_buffer = glium::VertexBuffer::new(
+            display,
+            self.hash_map.get(&drawable.key()).unwrap().as_slice(),
+        )
+        .unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         let color = drawable.color();
@@ -367,7 +378,7 @@ impl Graphics {
         let params = glium::DrawParameters {
             line_width: Some(2.0),
             blend: glium::Blend::alpha_blending(),
-            backface_culling: glium::BackfaceCullingMode::CullCounterClockwise,
+            backface_culling: glium::BackfaceCullingMode::CullClockwise,
             depth: glium::Depth {
                 test: glium::DepthTest::IfLess,
                 write: true,

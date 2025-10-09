@@ -5,10 +5,11 @@ use crate::scene::Scene;
 use glium::backend::glutin::SimpleWindowBuilder;
 use glium::winit::event::Event::{AboutToWait, WindowEvent};
 use glium::winit::event::WindowEvent::{
-    CloseRequested, CursorMoved, MouseInput, MouseWheel, RedrawRequested, Resized,
+    CloseRequested, CursorMoved, KeyboardInput, MouseInput, MouseWheel, RedrawRequested, Resized,
 };
 use glium::winit::event::{ElementState, MouseButton, MouseScrollDelta};
 use glium::winit::event_loop::EventLoop;
+use glium::winit::platform::scancode::PhysicalKeyExtScancode;
 use std::time::Instant;
 mod graphics;
 
@@ -64,7 +65,7 @@ fn main() {
                             scene.draw(&display, &mut frame, &mut graphics);
                             frame.finish().unwrap();
                             let end = Instant::now();
-                            // println!("Frame time: {:?}", end - start);
+                            println!("Frame time: {:?}", end - start);
                         }
                     }
                     MouseInput {
@@ -112,6 +113,17 @@ fn main() {
                         };
                         scene.queue_command(mouse_moved);
                         scene.process_commands();
+                    }
+                    KeyboardInput { event, .. } => {
+                        if event.state == ElementState::Pressed {
+                            let key_pressed = Command {
+                                command_type: CommandType::KeyDown,
+                                data1: event.physical_key.to_scancode().unwrap(),
+                                data2: 0,
+                            };
+                            scene.queue_command(key_pressed);
+                            scene.process_commands();
+                        }
                     }
                     MouseWheel { delta, .. } => match delta {
                         MouseScrollDelta::LineDelta(x, y) => {

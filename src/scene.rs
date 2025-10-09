@@ -96,7 +96,7 @@ impl Scene {
             drawing: false,
             throttle: 10,
             loading: true,
-            fluid: 0,
+            fluid: 1,
             noise: 0,
             dirty: true,
             elapsed: 0.0,
@@ -417,34 +417,35 @@ impl Scene {
     /// Handle a key press.
     pub fn handle_key_down(&mut self, command: &Command) {
         let key = command.data1;
+        println!("Handle key down: {}", key);
 
         match key {
             // E
-            69 => self.handle_move_up(),
+            18 => self.handle_move_up(),
             // C
-            67 => self.handle_move_down(),
+            46 => self.handle_move_down(),
             // A or LEFT
-            65 | 37 => self.handle_move_left(),
+            30 | 105 => self.handle_move_left(),
             // D or RIGHT
-            68 | 39 => self.handle_move_right(),
+            32 | 106 => self.handle_move_right(),
             // W or UP
-            87 | 38 => self.handle_move_forward(),
+            17 | 103 => self.handle_move_forward(),
             // S or X or DOWN
-            83 | 88 | 40 => self.handle_move_backward(),
+            31 | 45 | 108 => self.handle_move_backward(),
             // SPACEBAR
-            32 => self.handle_toggle_voxel(),
+            57 => self.handle_toggle_voxel(),
             // 4 or J
-            100 | 74 => self.handle_move_selection_left(),
+            36 | 75 => self.handle_move_selection_left(),
             // 6 or L
-            102 | 76 => self.handle_move_selection_right(),
+            38 | 77 => self.handle_move_selection_right(),
             // 2 or I
-            98 | 73 => self.handle_move_selection_forward(),
+            23 | 80 => self.handle_move_selection_forward(),
             // 8 or K
-            104 | 75 => self.handle_move_selection_backward(),
+            37 | 72 => self.handle_move_selection_backward(),
             // 9 | O
-            105 | 79 => self.handle_move_selection_up(),
+            24 | 73 => self.handle_move_selection_up(),
             // 3 | P
-            99 | 80 => self.handle_move_selection_down(),
+            25 | 81 => self.handle_move_selection_down(),
             // T
             //84 => self.handle_toggle_selection_shape(scene),
             _ => log::info!("Unhandled key press: {}", key),
@@ -467,7 +468,7 @@ impl Scene {
                     self.handle_mouse_moved(&command);
                 }
                 CommandType::KeyDown => {
-                    //  Self::handle_key_down(&command, &mut scene);
+                    self.handle_key_down(&command);
                 }
                 CommandType::MouseScroll => {
                     self.handle_mouse_scroll(&command);
@@ -764,17 +765,17 @@ impl Scene {
         frame: &mut Frame,
         graphics: &mut Graphics,
     ) {
-        self.elapsed += 0.01;
+        self.elapsed = Instant::now().elapsed().as_secs_f32();
 
-        /*
-                graphics.prepare_shadow_frame();
 
-                for voxel in self.model.drawables().iter() {
-                    graphics.draw_shadow(display, voxel, self.light);
-                }
+        graphics.prepare_shadow_frame();
 
-                graphics.finish_shadow_frame();
-        */
+        for voxel in self.model.drawables().iter() {
+            graphics.draw_shadow(display, voxel, self.light);
+        }
+
+        graphics.finish_shadow_frame();
+
         graphics.prepare_camera_frame(frame);
         if self.selection_cache.len() == 0 {
             self.selection_cache = Self::selection_voxels(
@@ -820,6 +821,7 @@ impl Scene {
                 b_dist.partial_cmp(&a_dist).unwrap()
             });
             self.drawables_cache = drawables;
+            self.drawables_cache = self.model.drawables();
         }
         for voxel in self.drawables_cache.iter() {
             graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
