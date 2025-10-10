@@ -54,6 +54,8 @@ fn main() {
                     CloseRequested => window_target.exit(),
                     Resized(window_size) => {
                         display.resize(window_size.into());
+                        graphics = Graphics::new(window_size.width, window_size.height);
+                        graphics.setup_shaders(&display);
                     }
 
                     RedrawRequested => {

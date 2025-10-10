@@ -79,6 +79,8 @@ pub struct Scene {
     selection_cache: Vec<[i32; 3]>,
     /// Flag to asynchronously invalidate the vertices cache in the graphics pipeline.
     invalidate_vertices: bool,
+    /// Start time of the scene.
+    start_time: Option<Instant>,
 }
 
 impl Scene {
@@ -108,6 +110,7 @@ impl Scene {
             drawables_cache: Vec::new(),
             selection_cache: Vec::new(),
             invalidate_vertices: false,
+            start_time: None,
         }
     }
 
@@ -638,7 +641,7 @@ impl Scene {
         self.grid_xz.rotate([90.0_f32.to_radians(), 0.0, 0.0]);
 
         self.model.init();
-        self.handle_toggle_voxel();
+        self.start_time = Some(Instant::now());
     }
 
     /// Quicker than distance - no sqrt.
@@ -774,7 +777,13 @@ impl Scene {
         frame: &mut Frame,
         graphics: &mut Graphics,
     ) {
-        self.elapsed = Instant::now().elapsed().as_secs_f32();
+        let animation_speed = 0.1;
+        self.elapsed = self
+            .start_time
+            .expect("Scene was not initialised")
+            .elapsed()
+            .as_secs_f32()
+            * animation_speed;
 
         if self.invalidate_vertices {
             self.invalidate_vertices = false;
