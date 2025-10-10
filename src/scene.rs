@@ -77,6 +77,8 @@ pub struct Scene {
     drawables_cache: Vec<Cube>,
     /// Only recalculate the selection voxels cache if the scene has changed.
     selection_cache: Vec<[i32; 3]>,
+    /// Flag to asynchronously invalidate the vertices cache in the graphics pipeline.
+    invalidate_vertices: bool,
 }
 
 impl Scene {
@@ -105,6 +107,7 @@ impl Scene {
             target_fps: 30,
             drawables_cache: Vec::new(),
             selection_cache: Vec::new(),
+            invalidate_vertices: false,
         }
     }
 
@@ -146,6 +149,11 @@ impl Scene {
     /// Something changed - we need to recalculate the selection cache.
     pub fn invalidate_selection_cache(&mut self) {
         self.selection_cache.clear();
+    }
+
+    pub fn invalidate_vertices_cache(&mut self) {
+        self.invalidate_vertices = true;
+        self.model.recalculate_occlusion();
     }
 
     /// Process a mouse down event.
@@ -328,6 +336,7 @@ impl Scene {
         );
         self.invalidate_selection_cache();
         self.invalidate_drawables_cache();
+        self.invalidate_vertices_cache();
     }
 
     /// Save the scene to the browser.
@@ -767,7 +776,10 @@ impl Scene {
     ) {
         self.elapsed = Instant::now().elapsed().as_secs_f32();
 
-
+        if self.invalidate_vertices {
+            self.invalidate_vertices = false;
+            graphics.invalidate_vertices_cache();
+        }
         graphics.prepare_shadow_frame();
 
         for voxel in self.model.drawables().iter() {

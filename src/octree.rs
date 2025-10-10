@@ -30,6 +30,12 @@ impl Octree {
         self.root.clear();
     }
 
+    pub fn recalculate_occlusion(&mut self) {
+        let borrow = self.root.clone();
+        println!("Recalculate occlusion");
+        self.root.recalculate_occlusion(&borrow);
+    }
+
     /// Optimize walks the tree and based on the camera position
     /// hides nested smaller cubes in bigger ones if the detail is not required.
     pub fn optimize(&mut self, camera_eye: [f32; 3]) {

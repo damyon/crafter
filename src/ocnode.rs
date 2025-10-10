@@ -39,6 +39,12 @@ pub struct Ocnode {
     fluid: i32,
     /// Render this node with a noisy texture.
     noise: i32,
+    front_occluded_calculated: bool,
+    back_occluded_calculated: bool,
+    top_occluded_calculated: bool,
+    bottom_occluded_calculated: bool,
+    left_occluded_calculated: bool,
+    right_occluded_calculated: bool,
 }
 
 impl Ocnode {
@@ -55,6 +61,12 @@ impl Ocnode {
             color: [0.8, 0.8, 0.8, 0.8],
             fluid: 0,
             noise: 0,
+            front_occluded_calculated: false,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
         }
     }
 
@@ -120,6 +132,8 @@ impl Ocnode {
             if bottom.active {
                 return self.uniform(bottom);
             }
+        } else {
+            print!("Bottom occlusion check failed");
         }
         false
     }
@@ -136,6 +150,8 @@ impl Ocnode {
             if left.active {
                 return self.uniform(left);
             }
+        } else {
+            print!("Left occlusion check failed");
         }
         false
     }
@@ -152,6 +168,8 @@ impl Ocnode {
             if right.active {
                 return self.uniform(right);
             }
+        } else {
+            print!("Right occlusion check failed");
         }
         false
     }
@@ -168,6 +186,8 @@ impl Ocnode {
             if front.active {
                 return self.uniform(front);
             }
+        } else {
+            print!("Front occlusion check failed");
         }
         false
     }
@@ -184,6 +204,8 @@ impl Ocnode {
             if back.active {
                 return self.uniform(back);
             }
+        } else {
+            print!("Back occlusion check failed");
         }
         false
     }
@@ -200,6 +222,8 @@ impl Ocnode {
             if top.active {
                 return self.uniform(top);
             }
+        } else {
+            print!("Top occlusion check failed");
         }
         false
     }
@@ -441,12 +465,12 @@ impl Ocnode {
                 cube.scale = scale;
                 cube.smooth = true;
 
-                cube.bottom_occluded = false;
-                cube.left_occluded = false;
-                cube.right_occluded = false;
-                cube.front_occluded = false;
-                cube.back_occluded = false;
-                cube.top_occluded = false;
+                cube.bottom_occluded = self.bottom_occluded_calculated;
+                cube.left_occluded = self.left_occluded_calculated;
+                cube.right_occluded = self.right_occluded_calculated;
+                cube.front_occluded = self.front_occluded_calculated;
+                cube.back_occluded = self.back_occluded_calculated;
+                cube.top_occluded = self.top_occluded_calculated;
                 cube.init();
 
                 let x = self.x_index as f32 * (1.0);
@@ -481,12 +505,12 @@ impl Ocnode {
             cube.scale = scale;
             cube.smooth = true;
 
-            cube.bottom_occluded = false;
-            cube.left_occluded = false;
-            cube.right_occluded = false;
-            cube.front_occluded = false;
-            cube.back_occluded = false;
-            cube.top_occluded = false;
+            cube.bottom_occluded = self.bottom_occluded_calculated;
+            cube.left_occluded = self.left_occluded_calculated;
+            cube.right_occluded = self.right_occluded_calculated;
+            cube.front_occluded = self.front_occluded_calculated;
+            cube.back_occluded = self.back_occluded_calculated;
+            cube.top_occluded = self.top_occluded_calculated;
             cube.init();
 
             let x = self.x_index as f32 * (scale);
@@ -498,6 +522,28 @@ impl Ocnode {
             vec![cube]
         } else {
             vec![]
+        }
+    }
+
+    pub fn recalculate_occlusion(&mut self, root: &Ocnode) {
+        if self.active {
+            self.front_occluded_calculated = self.front_occluded(root);
+            self.back_occluded_calculated = self.back_occluded(root);
+            self.top_occluded_calculated = self.top_occluded(root);
+            self.bottom_occluded_calculated = self.bottom_occluded(root);
+            self.left_occluded_calculated = self.left_occluded(root);
+            self.right_occluded_calculated = self.right_occluded(root);
+        }
+        if self.has_children {
+            let squirts = self.children.each_mut();
+            for node_opt in squirts {
+                match node_opt {
+                    None => {}
+                    Some(node) => {
+                        node.recalculate_occlusion(root);
+                    }
+                };
+            }
         }
     }
 
@@ -536,6 +582,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
 
         self.children[1] = Some(Box::new(Ocnode {
@@ -549,6 +601,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
         self.children[2] = Some(Box::new(Ocnode {
             x_index: self.x_index,
@@ -561,6 +619,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
         self.children[3] = Some(Box::new(Ocnode {
             x_index: self.x_index,
@@ -573,6 +637,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
         self.children[4] = Some(Box::new(Ocnode {
             x_index: self.x_index + self.resolution(self.sub_division_level + 1) as i32,
@@ -585,6 +655,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
         self.children[5] = Some(Box::new(Ocnode {
             x_index: self.x_index,
@@ -597,6 +673,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
         self.children[6] = Some(Box::new(Ocnode {
             x_index: self.x_index + self.resolution(self.sub_division_level + 1) as i32,
@@ -609,6 +691,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
         self.children[7] = Some(Box::new(Ocnode {
             x_index: self.x_index + self.resolution(self.sub_division_level + 1) as i32,
@@ -621,6 +709,12 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            back_occluded_calculated: false,
+            top_occluded_calculated: false,
+            bottom_occluded_calculated: false,
+            left_occluded_calculated: false,
+            right_occluded_calculated: false,
+            front_occluded_calculated: false,
         }));
     }
 }

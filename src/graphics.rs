@@ -21,7 +21,7 @@ pub struct Graphics {
     pub light_program: Option<Program>,
     pub shadow_depth_texture: Option<Texture2d>,
     pub shadow_texture_size: u32,
-    pub hash_map: HashMap<u64, Vec<Vertex>>,
+    pub vertices_cache: HashMap<u64, Vec<Vertex>>,
 }
 
 impl Graphics {
@@ -34,7 +34,7 @@ impl Graphics {
             light_program: None,
             shadow_depth_texture: None,
             shadow_texture_size: 4096,
-            hash_map: HashMap::new(),
+            vertices_cache: HashMap::new(),
         }
     }
 
@@ -261,8 +261,16 @@ impl Graphics {
         drawable: &impl Drawable,
         light: Camera,
     ) {
-        let vertices_buffer =
-            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
+        if !self.vertices_cache.contains_key(&drawable.key()) {
+            self.vertices_cache
+                .insert(drawable.key(), drawable.vertices());
+        }
+
+        let vertices_buffer = glium::VertexBuffer::new(
+            display,
+            self.vertices_cache.get(&drawable.key()).unwrap().as_slice(),
+        )
+        .unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         let eye = light.eye;
@@ -312,6 +320,10 @@ impl Graphics {
             .unwrap();
     }
 
+    pub fn invalidate_vertices_cache(&mut self) {
+        self.vertices_cache.clear();
+    }
+
     /// Render to the actual color buffer.
     pub fn draw(
         &mut self,
@@ -322,13 +334,14 @@ impl Graphics {
         light: Camera,
         elapsed: f32,
     ) {
-        if !self.hash_map.contains_key(&drawable.key()) {
-            self.hash_map.insert(drawable.key(), drawable.vertices());
+        if !self.vertices_cache.contains_key(&drawable.key()) {
+            self.vertices_cache
+                .insert(drawable.key(), drawable.vertices());
         }
 
         let vertices_buffer = glium::VertexBuffer::new(
             display,
-            self.hash_map.get(&drawable.key()).unwrap().as_slice(),
+            self.vertices_cache.get(&drawable.key()).unwrap().as_slice(),
         )
         .unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());

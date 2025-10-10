@@ -26,6 +26,10 @@ impl Model {
         self.voxels.optimize(camera_eye);
     }
 
+    pub fn recalculate_occlusion(&mut self) {
+        self.voxels.recalculate_occlusion();
+    }
+
     /// Initialise
     pub fn init(&mut self) {
         self.voxels.init();
