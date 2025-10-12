@@ -62,9 +62,9 @@ pub struct Scene {
     /// Are we loading from browser?
     loading: bool,
     /// Is the material fluid?
-    fluid: i32,
+    fluid: bool,
     /// Is the material noisy?
-    noise: i32,
+    noise: bool,
     /// Will the frame match the last rendered frame?
     dirty: bool,
     /// Approximation of time
@@ -100,8 +100,8 @@ impl Scene {
             drawing: false,
             throttle: 10,
             loading: true,
-            fluid: 1,
-            noise: 0,
+            fluid: false,
+            noise: false,
             dirty: true,
             elapsed: 0.0,
             last_draw: None,
@@ -161,15 +161,11 @@ impl Scene {
 
     /// Process a mouse down event.
     pub fn handle_mouse_down(&mut self) {
-        println!("Mouse was pressed");
-
         self.mouse.is_pressed = true;
     }
 
     /// Process a mouse up event.
     pub fn handle_mouse_up(&mut self) {
-        println!("Mouse was lifted");
-
         self.mouse.is_pressed = false;
     }
 
@@ -178,8 +174,6 @@ impl Scene {
         let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
 
         if self.mouse.is_pressed {
-            println!("Mouse was moved when pressed");
-
             let position_diff = Point2::new(
                 current_position.x - self.mouse.last_position.x,
                 current_position.y - self.mouse.last_position.y,
@@ -191,7 +185,7 @@ impl Scene {
             let current_camera_distance = (current_camera_direction.x.powf(2.0f32)
                 + current_camera_direction.z.powf(2.0f32))
             .sqrt();
-            let scale = 20.0f32 / current_camera_distance;
+            let scale = 5.0f32 / current_camera_distance;
             let scaled_direction = scale * current_camera_direction;
             let scaled_point =
                 Point3::new(scaled_direction.x, scaled_direction.y, scaled_direction.z);
@@ -334,9 +328,10 @@ impl Scene {
             (self.material_color[3]).clamp(0.0, 1.0),
         ];
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
-        self.model.toggle_voxels(
-            selections, !value, color, camera_eye, self.fluid, self.noise,
-        );
+        let fluid = if self.fluid { 1 } else { 0 };
+        let noise = if self.noise { 1 } else { 0 };
+        self.model
+            .toggle_voxels(selections, !value, color, camera_eye, fluid, noise);
         self.invalidate_selection_cache();
         self.invalidate_drawables_cache();
         self.invalidate_vertices_cache();
@@ -416,34 +411,94 @@ impl Scene {
         let direction: u32 = command.data2;
         let max_selection_radius: u32 = 32;
         let min_selection_radius: u32 = 1;
-        println!("Handle mouse scroll {}", direction);
         if direction > 0 {
             self.selection_radius = min(self.selection_radius + 1, max_selection_radius);
         } else {
             self.selection_radius = max(self.selection_radius - 1, min_selection_radius);
         }
-        println!("New selection radius {}", self.selection_radius);
         self.invalidate_selection_cache();
+    }
+
+    pub fn print_keyboard_bindings(&self) {
+        println!("");
+        println!("Keyboard Bindings:");
+        println!("W or <up>: Move forward");
+        println!("S or <down>: Move backward");
+        println!("A or <left>: Move left");
+        println!("D or <right>: Move right");
+        println!("Q: Move up");
+        println!("E: Move down");
+        println!("I or 8: Move selection forward");
+        println!("K or 5: Move selection backward");
+        println!("J or 4: Move selection left");
+        println!("L or 6: Move selection right");
+        println!("U or 7: Move selection up");
+        println!("O or 9: Move selection down");
+        println!("Space: Create/Destroy voxels in the current selection");
+        println!("T: Cycle the selection shape");
+        println!("F: Toggle fluid mode");
+        println!("G: Toggle grid visibility");
+        println!("N: Toggle material noise");
+        println!("F1: More Red");
+        println!("F2: More Green");
+        println!("F3: More Blue");
+        println!("F4: More Alpha");
+        println!("F5: Less Red");
+        println!("F6: Less Green");
+        println!("F7: Less Blue");
+        println!("F8: Less Alpha")
+    }
+
+    pub fn more_red(&mut self) {
+        self.material_color[0] += 0.1;
+    }
+
+    pub fn more_green(&mut self) {
+        self.material_color[1] += 0.1;
+    }
+
+    pub fn more_blue(&mut self) {
+        self.material_color[2] += 0.1;
+    }
+
+    pub fn more_alpha(&mut self) {
+        self.material_color[3] += 0.1;
+    }
+
+    pub fn less_red(&mut self) {
+        self.material_color[0] -= 0.1;
+    }
+
+    pub fn less_green(&mut self) {
+        self.material_color[1] -= 0.1;
+    }
+
+    pub fn less_blue(&mut self) {
+        self.material_color[2] -= 0.1;
+    }
+
+    pub fn less_alpha(&mut self) {
+        self.material_color[3] -= 0.1;
     }
 
     /// Handle a key press.
     pub fn handle_key_down(&mut self, command: &Command) {
         let key = command.data1;
-        println!("Handle key down: {}", key);
 
+        println!("Key pressed: {}", key);
         match key {
+            // Q
+            16 => self.handle_move_up(),
             // E
-            18 => self.handle_move_up(),
-            // C
-            46 => self.handle_move_down(),
+            18 => self.handle_move_down(),
             // A or LEFT
             30 | 105 => self.handle_move_left(),
             // D or RIGHT
             32 | 106 => self.handle_move_right(),
             // W or UP
             17 | 103 => self.handle_move_forward(),
-            // S or X or DOWN
-            31 | 45 | 108 => self.handle_move_backward(),
+            // S or DOWN
+            31 | 108 => self.handle_move_backward(),
             // SPACEBAR
             57 => self.handle_toggle_voxel(),
             // 4 or J
@@ -451,15 +506,30 @@ impl Scene {
             // 6 or L
             38 | 77 => self.handle_move_selection_right(),
             // 2 or I
-            23 | 80 => self.handle_move_selection_forward(),
-            // 8 or K
-            37 | 72 => self.handle_move_selection_backward(),
+            23 | 72 => self.handle_move_selection_forward(),
+            // 5 or K
+            37 | 76 => self.handle_move_selection_backward(),
+            // 7 | U
+            22 | 71 => self.handle_move_selection_up(),
             // 9 | O
-            24 | 73 => self.handle_move_selection_up(),
-            // 3 | P
-            25 | 81 => self.handle_move_selection_down(),
+            24 | 73 => self.handle_move_selection_down(),
             // T
-            //84 => self.handle_toggle_selection_shape(scene),
+            20 => self.handle_toggle_selection_shape(),
+            // F
+            33 => self.toggle_fluid(),
+            // G
+            34 => self.toggle_show_grid(),
+            // N
+            49 => self.toggle_noise(),
+            59 => self.more_red(),
+            60 => self.more_green(),
+            61 => self.more_blue(),
+            62 => self.more_alpha(),
+            63 => self.less_red(),
+            64 => self.less_green(),
+            65 => self.less_blue(),
+            66 => self.less_alpha(),
+
             _ => log::info!("Unhandled key press: {}", key),
         }
     }
@@ -576,37 +646,18 @@ impl Scene {
     }
 
     /// Enable color noise.
-    pub async fn toggle_noise(&mut self) {
-        self.noise = 1;
-    }
-
-    /// Enable smoothing.
-    pub async fn toggle_smooth(&mut self) {
-        self.noise = 0;
-    }
-
-    /// Enable solid material.
-    pub async fn toggle_solid(&mut self) {
-        log::error!("Fluid goes off");
-        self.fluid = 0;
+    pub fn toggle_noise(&mut self) {
+        self.noise = !self.noise;
     }
 
     /// Show grid.
-    pub async fn toggle_show_grid(&mut self) {
-        log::error!("Grid goes on");
-        self.grid_visible = true;
-    }
-
-    /// Show grid.
-    pub async fn toggle_hide_grid(&mut self) {
-        log::error!("Grid goes off");
-        self.grid_visible = false;
+    pub fn toggle_show_grid(&mut self) {
+        self.grid_visible = !self.grid_visible;
     }
 
     /// Enable fluid.
-    pub async fn toggle_fluid(&mut self) {
-        log::error!("Fluid goes on");
-        self.fluid = 1;
+    pub fn toggle_fluid(&mut self) {
+        self.fluid = !self.fluid;
     }
 
     pub async fn set_target_fps(&mut self, fps: u32) {
@@ -642,6 +693,8 @@ impl Scene {
 
         self.model.init();
         self.start_time = Some(Instant::now());
+
+        self.print_keyboard_bindings();
     }
 
     /// Quicker than distance - no sqrt.

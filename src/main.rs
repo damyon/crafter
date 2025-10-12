@@ -67,7 +67,7 @@ fn main() {
                             scene.draw(&display, &mut frame, &mut graphics);
                             frame.finish().unwrap();
                             let end = Instant::now();
-                            println!("Frame time: {:?}", end - start);
+                            //       println!("Frame time: {:?}", end - start);
                         }
                     }
                     MouseInput {
