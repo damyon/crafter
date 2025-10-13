@@ -21,6 +21,7 @@ mod command_queue;
 mod cube;
 mod drawable;
 mod grid;
+mod image_vertex;
 mod model;
 mod mouse;
 mod ocnode;

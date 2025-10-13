@@ -36,7 +36,17 @@ impl UiContext {
     }
 
     pub fn create_default_ui(&mut self) {
-        self.widgets.push(Box::new(Button::new((4, 4), (15, 8))));
+        let mut button = Button::new((-0.9, -0.9), (0.2, 0.1));
+        button.add_state(
+            String::from("Hide Grid"),
+            String::from("resources/show-grid.png"),
+        );
+        button.add_state(
+            String::from("Show Grid"),
+            String::from("resources/hide-grid.png"),
+        );
+
+        self.widgets.push(Box::new(button));
     }
 
     /// Adds a widget to the UI context.
