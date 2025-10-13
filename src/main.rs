@@ -2,6 +2,7 @@ use crate::command::Command;
 use crate::command::CommandType;
 use crate::graphics::Graphics;
 use crate::scene::Scene;
+use crate::ui_context::UiContext;
 use glium::backend::glutin::SimpleWindowBuilder;
 use glium::winit::event::Event::{AboutToWait, WindowEvent};
 use glium::winit::event::WindowEvent::{
@@ -13,6 +14,7 @@ use glium::winit::platform::scancode::PhysicalKeyExtScancode;
 use std::time::Instant;
 mod graphics;
 
+mod button;
 mod camera;
 mod command;
 mod command_queue;
@@ -26,7 +28,9 @@ mod octree;
 mod scene;
 mod storage;
 mod stored_octree;
+mod ui_context;
 mod vertex;
+mod widget;
 
 fn main() {
     let mut scene = Scene::new();
@@ -45,6 +49,9 @@ fn main() {
     let mut graphics: Graphics = Graphics::new(width, height);
     graphics.setup_shaders(&display);
 
+    let mut ui = UiContext::new();
+    ui.create_default_ui();
+
     #[allow(deprecated)]
     event_loop
         .run(move |event, window_target| {
@@ -60,11 +67,13 @@ fn main() {
 
                     RedrawRequested => {
                         scene.process_commands();
+                        ui.process_commands();
                         if scene.throttle() {
                             let start = Instant::now();
                             let mut frame = display.draw();
                             // By finishing the frame swap buffers and thereby make it visible on the window
                             scene.draw(&display, &mut frame, &mut graphics);
+                            ui.draw(&display, &mut frame);
                             frame.finish().unwrap();
                             let end = Instant::now();
                             //       println!("Frame time: {:?}", end - start);
@@ -86,6 +95,7 @@ fn main() {
                                         data2: 1,
                                     };
                                     scene.queue_command(mouse_down);
+                                    ui.queue_command(mouse_down);
                                 }
                                 _ => {}
                             },
@@ -97,6 +107,7 @@ fn main() {
                                         data2: 1,
                                     };
                                     scene.queue_command(mouse_up);
+                                    ui.queue_command(mouse_up);
                                 }
                                 _ => {}
                             },
@@ -114,6 +125,7 @@ fn main() {
                             data2: position.y as u32,
                         };
                         scene.queue_command(mouse_moved);
+                        ui.queue_command(mouse_moved);
                         scene.process_commands();
                     }
                     KeyboardInput { event, .. } => {
@@ -124,6 +136,7 @@ fn main() {
                                 data2: 0,
                             };
                             scene.queue_command(key_pressed);
+                            ui.queue_command(key_pressed);
                             scene.process_commands();
                         }
                     }
@@ -136,6 +149,7 @@ fn main() {
                             };
                             println!("Mouse wheel scrolled: x={}, y={}", x, y);
                             scene.queue_command(mouse_wheel);
+                            ui.queue_command(mouse_wheel);
                             scene.process_commands();
                         }
                         _ => {}
