@@ -1,14 +1,8 @@
 use crate::canvas::Canvas;
 use crate::command::Command;
-use crate::image_vertex::ImageVertex;
-use crate::vertex::Vertex;
 use glium::Frame;
-use glium::Surface;
 use glium::backend::glutin::Display;
-use glium::uniform;
 use glutin::surface::WindowSurface;
-use std::fs::File;
-use std::io::BufReader;
 
 pub struct ButtonState {
     pub name: String,
