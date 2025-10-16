@@ -36,7 +36,7 @@ impl UiContext {
     }
 
     pub fn create_default_ui(&mut self) {
-        let mut button = Button::new((-0.9, -0.9), (0.2, 0.1));
+        let mut button = Button::new((-0.8, -0.95), (0.2, 0.1));
         button.add_state(
             String::from("Hide Grid"),
             String::from("resources/show-grid.png"),

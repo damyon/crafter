@@ -19,7 +19,7 @@ impl<'a> Canvas<'a> {
     }
 
     pub fn draw_rectangle(&mut self, position: (f32, f32), size: (f32, f32), color: [f32; 4]) {
-        // Draw the button at the specified position
+        // Draw the rect at the specified position
         let vertex1 = Vertex {
             position: [position.0, position.1, 0.0],
             normal: [0.0, 0.0, 1.0],
@@ -72,6 +72,38 @@ impl<'a> Canvas<'a> {
         self.frame
             .draw(&vertex_buffer, &indices, &program, &uniforms, &params)
             .unwrap();
+    }
+
+    pub fn draw_rectangle_with_border(
+        &mut self,
+        position: (f32, f32),
+        size: (f32, f32),
+        color: [f32; 4],
+        border: (f32, f32),
+        border_color: [f32; 4],
+    ) {
+        // Draw the rect at the specified position
+        let inset_position = (position.0 + border.0, position.1 + border.0);
+        let inset_size = (size.0 - (2.0 * border.0), size.1 - (2.0 * border.0));
+        self.draw_rectangle(inset_position, inset_size, color);
+        let left_position = (position.0, position.1 + border.0);
+        let left_size = (border.0, size.1 - (2.0 * border.0));
+        let right_position = (
+            position.0 + border.0 + size.0 - (2.0 * border.0),
+            position.1 + border.0,
+        );
+        let right_size = (border.0, size.1 - (2.0 * border.0));
+        let top_position = (
+            position.0 + border.0,
+            position.1 + border.0 + size.1 - (2.0 * border.0),
+        );
+        let top_size = (size.0 - (2.0 * border.0), border.0);
+        let bottom_position = (position.0 + border.0, position.1);
+        let bottom_size = (size.0 - (2.0 * border.0), border.0);
+        self.draw_rectangle(left_position, left_size, border_color);
+        self.draw_rectangle(right_position, right_size, border_color);
+        self.draw_rectangle(top_position, top_size, border_color);
+        self.draw_rectangle(bottom_position, bottom_size, border_color);
     }
 
     pub fn draw_image(&mut self, position: (f32, f32), size: (f32, f32), icon_path: &str) {

@@ -43,7 +43,12 @@ use crate::widget::Widget;
 impl Widget for Button {
     fn draw(&mut self, display: &Display<WindowSurface>, frame: &mut Frame) {
         let mut canvas = Canvas::new(display, frame);
-        let slices = 32;
+
+        let border_color = [0.1, 0.1, 0.1, 0.5];
+        let color = [0.7, 0.6, 0.9, 1.0];
+        let border = (0.02, 0.3);
+        canvas.draw_rectangle_with_border(self.position, self.size, color, border, border_color);
+        /*let slices = 32;
 
         let mut angle: f32 = 0.0;
         let mut x: f32;
@@ -82,7 +87,7 @@ impl Widget for Button {
                 (self.size.0, self.size.1),
                 current.icon_path.as_str(),
             );
-        }
+        }*/
     }
 
     fn process_command(&mut self, command: &Command) {
