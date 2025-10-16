@@ -16,6 +16,7 @@ mod graphics;
 
 mod button;
 mod camera;
+mod canvas;
 mod command;
 mod command_queue;
 mod cube;
