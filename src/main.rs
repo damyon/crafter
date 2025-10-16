@@ -48,6 +48,10 @@ fn main() {
         .build(&event_loop);
     let (width, height) = display.get_framebuffer_dimensions();
 
+    let mut cursor_x = 0;
+    let mut cursor_y = 0;
+    let mut window_width = width;
+    let mut window_height = height;
     let mut graphics: Graphics = Graphics::new(width, height);
     graphics.setup_shaders(&display);
 
@@ -63,6 +67,8 @@ fn main() {
                     CloseRequested => window_target.exit(),
                     Resized(window_size) => {
                         display.resize(window_size.into());
+                        window_width = window_size.width;
+                        window_height = window_size.height;
                         graphics = Graphics::new(window_size.width, window_size.height);
                         graphics.setup_shaders(&display);
                     }
@@ -91,10 +97,16 @@ fn main() {
                         match state {
                             ElementState::Pressed => match button {
                                 MouseButton::Left => {
+                                    // cursor to screen coordinates
+                                    let screen_x =
+                                        (cursor_x as f32 / window_width as f32) * 2.0 - 1.0;
+                                    let screen_y =
+                                        -((cursor_y as f32 / window_height as f32) * 2.0 - 1.0);
+
                                     let mouse_down = Command {
                                         command_type: CommandType::MouseDown,
-                                        data1: 1,
-                                        data2: 1,
+                                        data1: screen_x.to_bits(),
+                                        data2: screen_y.to_bits(),
                                     };
                                     scene.queue_command(mouse_down);
                                     ui.queue_command(mouse_down);
@@ -126,6 +138,8 @@ fn main() {
                             data1: position.x as u32,
                             data2: position.y as u32,
                         };
+                        cursor_x = position.x as u32;
+                        cursor_y = position.y as u32;
                         scene.queue_command(mouse_moved);
                         ui.queue_command(mouse_moved);
                         scene.process_commands();

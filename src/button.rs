@@ -1,5 +1,5 @@
 use crate::canvas::Canvas;
-use crate::command::Command;
+use crate::command::{Command, CommandType};
 use glium::Frame;
 use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
@@ -13,7 +13,7 @@ pub struct Button {
     pub position: (f32, f32),
     pub size: (f32, f32),
     pub states: Vec<ButtonState>,
-    pub current_state: String,
+    pub current_state: usize,
 }
 
 impl Button {
@@ -22,14 +22,14 @@ impl Button {
             position,
             size,
             states: Vec::new(),
-            current_state: String::new(),
+            current_state: 0,
         }
     }
 
     pub fn add_state(&mut self, name: String, icon_path: String) {
         let state_name = name.clone();
-        if self.current_state.is_empty() {
-            self.current_state = name;
+        if self.states.len() == 0 {
+            self.current_state = 0;
         }
         self.states.push(ButtonState {
             name: state_name,
@@ -48,12 +48,8 @@ impl Widget for Button {
         let color = [0.6, 0.6, 0.6, 1.0];
         let border = 0.01;
         canvas.draw_rectangle_with_border(self.position, self.size, color, border, border_color);
-        if self.current_state.len() > 0 {
-            let current = self
-                .states
-                .iter()
-                .find(|state| state.name == self.current_state)
-                .unwrap();
+        if self.states.len() > 0 {
+            let current = self.states.get(self.current_state).unwrap();
 
             canvas.draw_image(
                 (
@@ -68,5 +64,20 @@ impl Widget for Button {
 
     fn process_command(&mut self, command: &Command) {
         // Process window event.
+        match command.command_type {
+            CommandType::MouseDown => {
+                let x = f32::from_bits(command.data1);
+                let y = f32::from_bits(command.data2);
+                println!("Mouse down at ({}, {})", x, y);
+                if x >= self.position.0
+                    && x <= self.position.0 + self.size.0
+                    && y >= self.position.1
+                    && y <= self.position.1 + self.size.1
+                {
+                    self.current_state = (self.current_state + 1) % self.states.len();
+                }
+            }
+            _ => {}
+        }
     }
 }
