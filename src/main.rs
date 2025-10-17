@@ -75,7 +75,11 @@ fn main() {
 
                     RedrawRequested => {
                         scene.process_commands();
-                        ui.process_commands();
+                        let translated_commands = ui.process_commands();
+                        translated_commands.iter().for_each(|command| {
+                            scene.queue_command(*command);
+                        });
+
                         if scene.throttle() {
                             let start = Instant::now();
                             let mut frame = display.draw();

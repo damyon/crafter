@@ -6,5 +6,5 @@ use glutin::surface::WindowSurface;
 
 pub trait Widget {
     fn draw(&mut self, display: &Display<WindowSurface>, frame: &mut Frame);
-    fn process_command(&mut self, command: &Command);
+    fn process_command(&mut self, command: &Command) -> Option<Command>;
 }

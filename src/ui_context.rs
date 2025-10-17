@@ -23,16 +23,22 @@ impl UiContext {
     }
 
     /// Process the command queue.
-    pub fn process_commands(&mut self) {
+    pub fn process_commands(&mut self) -> Vec<Command> {
         let mut command_opt = self.command_input.next();
+        let mut translated_commands = Vec::<Command>::new();
 
         while let Some(command) = command_opt {
             for widget in &mut self.widgets {
-                widget.process_command(&command);
+                let translated_command_opt = widget.process_command(&command);
+                if let Some(translated_command) = translated_command_opt {
+                    translated_commands.push(translated_command);
+                }
             }
 
             command_opt = self.command_input.next();
         }
+
+        translated_commands
     }
 
     pub fn create_default_ui(&mut self) {

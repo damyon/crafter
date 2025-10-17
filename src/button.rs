@@ -62,7 +62,7 @@ impl Widget for Button {
         }
     }
 
-    fn process_command(&mut self, command: &Command) {
+    fn process_command(&mut self, command: &Command) -> Option<Command> {
         // Process window event.
         match command.command_type {
             CommandType::MouseDown => {
@@ -75,9 +75,16 @@ impl Widget for Button {
                     && y <= self.position.1 + self.size.1
                 {
                     self.current_state = (self.current_state + 1) % self.states.len();
+                    Some(Command {
+                        command_type: CommandType::KeyDown,
+                        data1: 34,
+                        data2: 34,
+                    })
+                } else {
+                    None
                 }
             }
-            _ => {}
+            _ => None,
         }
     }
 }
