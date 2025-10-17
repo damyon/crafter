@@ -42,7 +42,7 @@ impl UiContext {
     }
 
     pub fn create_default_ui(&mut self) {
-        let mut button = Button::new((-0.8, -0.95), (0.1, 0.1));
+        let mut button = Button::new((-0.8, -0.95), (0.1, 0.1), 34);
         button.add_state(
             String::from("Hide Grid"),
             String::from("resources/show-grid.png"),
@@ -52,7 +52,43 @@ impl UiContext {
             String::from("resources/hide-grid.png"),
         );
 
-        self.widgets.push(Box::new(button));
+        self.add_widget(Box::new(button));
+
+        let mut button = Button::new((-0.69, -0.95), (0.1, 0.1), 20);
+        button.add_state(
+            String::from("Sphere Shape"),
+            String::from("resources/shape-sphere.png"),
+        );
+        button.add_state(
+            String::from("Cube Shape"),
+            String::from("resources/shape-cube.png"),
+        );
+        button.add_state(
+            String::from("Square XZ Shape"),
+            String::from("resources/shape-square-xz.png"),
+        );
+        button.add_state(
+            String::from("Square XY Shape"),
+            String::from("resources/shape-square-xy.png"),
+        );
+        button.add_state(
+            String::from("Square YZ Shape"),
+            String::from("resources/shape-square-yz.png"),
+        );
+        button.add_state(
+            String::from("Circle XZ Shape"),
+            String::from("resources/shape-circle-xz.png"),
+        );
+        button.add_state(
+            String::from("Circle XY Shape"),
+            String::from("resources/shape-circle-xy.png"),
+        );
+        button.add_state(
+            String::from("Circle YZ Shape"),
+            String::from("resources/shape-circle-yz.png"),
+        );
+
+        self.add_widget(Box::new(button));
     }
 
     /// Adds a widget to the UI context.

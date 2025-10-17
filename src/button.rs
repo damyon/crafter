@@ -14,15 +14,17 @@ pub struct Button {
     pub size: (f32, f32),
     pub states: Vec<ButtonState>,
     pub current_state: usize,
+    pub mapped_key: u32,
 }
 
 impl Button {
-    pub fn new(position: (f32, f32), size: (f32, f32)) -> Self {
+    pub fn new(position: (f32, f32), size: (f32, f32), mapped_key: u32) -> Self {
         Button {
             position,
             size,
             states: Vec::new(),
             current_state: 0,
+            mapped_key,
         }
     }
 
@@ -77,8 +79,8 @@ impl Widget for Button {
                     self.current_state = (self.current_state + 1) % self.states.len();
                     Some(Command {
                         command_type: CommandType::KeyDown,
-                        data1: 34,
-                        data2: 34,
+                        data1: self.mapped_key,
+                        data2: self.mapped_key,
                     })
                 } else {
                     None
