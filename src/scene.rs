@@ -530,9 +530,12 @@ impl Scene {
 
     /// Handle a key press.
     pub fn handle_key_down(&mut self, command: &Command) {
-        let key = command.data1;
+        let mut key = command.data1;
 
         println!("Key pressed: {}", key);
+        if std::env::consts::OS == "macos" {
+            key += 8;
+        }
         match key {
             1 => self.select_file_to_open(),
             // Q
