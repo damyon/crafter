@@ -6,6 +6,7 @@ pub enum CommandType {
     MouseUp,
     KeyDown,
     MouseScroll,
+    SliderMoved,
 }
 
 /// A command that can be queued with the data that came with it.

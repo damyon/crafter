@@ -13,6 +13,7 @@ use glium::Frame;
 use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
 use nalgebra::{Point2, Point3, Vector3};
+use rfd::FileDialog;
 use std::cmp::{max, min};
 use std::time::{Duration, Instant};
 
@@ -111,6 +112,20 @@ impl Scene {
             selection_cache: Vec::new(),
             invalidate_vertices: false,
             start_time: None,
+        }
+    }
+
+    fn select_file_to_open(&mut self) {
+        let file = FileDialog::new()
+            .set_directory(".") // Optional: set the starting directory
+            .pick_file();
+
+        if let Some(path) = file {
+            println!("The user picked: {:?}", path);
+            // You can now open the file using Rust's standard library
+            // and do something with its contents.
+        } else {
+            println!("The user canceled the operation.");
         }
     }
 
@@ -406,6 +421,38 @@ impl Scene {
         self.invalidate_selection_cache();
     }
 
+    pub fn handle_slider_moved(&mut self, command: &Command) {
+        let value: f32 = command.data1 as f32 / 100.0;
+        match command.data1 {
+            0 => {
+                let value = command.data2;
+                // Value is red from 0 to 255
+                //
+                self.material_color[0] = value as f32 / 255.0;
+            }
+            1 => {
+                let value = command.data2;
+                // Value is green from 0 to 255
+                //
+                self.material_color[1] = value as f32 / 255.0;
+            }
+            2 => {
+                let value = command.data2;
+                // Value is blue from 0 to 255
+                //
+                self.material_color[2] = value as f32 / 255.0;
+            }
+            3 => {
+                let value = command.data2;
+                // Value is alpha from 0 to 255
+                //
+                self.material_color[3] = value as f32 / 255.0;
+            }
+
+            _ => {}
+        }
+    }
+
     /// Handle the mouse scroll.
     pub fn handle_mouse_scroll(&mut self, command: &Command) {
         let direction: u32 = command.data2;
@@ -487,6 +534,7 @@ impl Scene {
 
         println!("Key pressed: {}", key);
         match key {
+            1 => self.select_file_to_open(),
             // Q
             16 => self.handle_move_up(),
             // E
@@ -540,6 +588,9 @@ impl Scene {
 
         while let Some(command) = command_opt {
             match command.command_type {
+                CommandType::SliderMoved => {
+                    self.handle_slider_moved(&command);
+                }
                 CommandType::MouseDown => {
                     self.handle_mouse_down();
                 }
@@ -873,16 +924,6 @@ impl Scene {
                 self.elapsed,
             );
         }
-        if self.grid_visible {
-            graphics.draw(
-                display,
-                frame,
-                &self.grid_xz,
-                self.camera,
-                self.light,
-                self.elapsed,
-            );
-        }
 
         if self.drawables_cache.len() == 0 {
             let mut drawables: Vec<Cube> = self.model.drawables();
@@ -899,6 +940,17 @@ impl Scene {
         }
         for voxel in self.drawables_cache.iter() {
             graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
+        }
+
+        if self.grid_visible {
+            graphics.draw(
+                display,
+                frame,
+                &self.grid_xz,
+                self.camera,
+                self.light,
+                self.elapsed,
+            );
         }
 
         graphics.finish_camera_frame();

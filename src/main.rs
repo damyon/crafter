@@ -28,6 +28,7 @@ mod mouse;
 mod ocnode;
 mod octree;
 mod scene;
+mod slider;
 mod storage;
 mod stored_octree;
 mod ui_context;

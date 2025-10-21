@@ -33,7 +33,7 @@ impl Grid {
             max_scale: 200,
             translation: [0.0; 3],
             rotation: [0.0; 3],
-            color: [0.5, 0.5, 0.5, 0.2],
+            color: [0.5, 0.5, 0.5, 0.1],
             fluid: 0,
             noise: 0,
             key: 0,
