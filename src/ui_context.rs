@@ -43,7 +43,7 @@ impl UiContext {
     }
 
     pub fn create_default_ui(&mut self) {
-        let mut button = Button::new((-0.91, -0.95), (0.1, 0.1), 1);
+        let mut button = Button::new((-0.96, -0.95), (0.1, 0.1), 1);
         button.add_state(
             String::from("Open Scene"),
             String::from("resources/file-open.png"),
@@ -51,7 +51,15 @@ impl UiContext {
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.8, -0.95), (0.1, 0.1), 34);
+        let mut button = Button::new((-0.85, -0.95), (0.1, 0.1), 2);
+        button.add_state(
+            String::from("Save Scene"),
+            String::from("resources/file-save.png"),
+        );
+
+        self.add_widget(Box::new(button));
+
+        let mut button = Button::new((-0.74, -0.95), (0.1, 0.1), 34);
         button.add_state(
             String::from("Hide Grid"),
             String::from("resources/show-grid.png"),
@@ -63,7 +71,7 @@ impl UiContext {
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.69, -0.95), (0.1, 0.1), 20);
+        let mut button = Button::new((-0.63, -0.95), (0.1, 0.1), 20);
         button.add_state(
             String::from("Sphere Shape"),
             String::from("resources/shape-sphere.png"),
@@ -99,7 +107,7 @@ impl UiContext {
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.58, -0.95), (0.1, 0.1), 33);
+        let mut button = Button::new((-0.52, -0.95), (0.1, 0.1), 33);
         button.add_state(
             String::from("Material Solid"),
             String::from("resources/material-solid.png"),
@@ -111,7 +119,7 @@ impl UiContext {
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.47, -0.95), (0.1, 0.1), 49);
+        let mut button = Button::new((-0.41, -0.95), (0.1, 0.1), 49);
         button.add_state(
             String::from("Shader Solid"),
             String::from("resources/shader-solid.png"),
@@ -124,8 +132,8 @@ impl UiContext {
         self.add_widget(Box::new(button));
 
         // Red slider
-        let mut slider = Slider::new(
-            (-0.36, -0.95),
+        let slider = Slider::new(
+            (-0.3, -0.95),
             (0.05, 0.3),
             [1.0, 0.0, 0.0, 1.0],
             204,
@@ -136,8 +144,8 @@ impl UiContext {
         self.add_widget(Box::new(slider));
 
         // Green slider
-        let mut slider = Slider::new(
-            (-0.31, -0.95),
+        let slider = Slider::new(
+            (-0.25, -0.95),
             (0.05, 0.3),
             [0.0, 1.0, 0.0, 1.0],
             204,
@@ -148,8 +156,8 @@ impl UiContext {
         self.add_widget(Box::new(slider));
 
         // Blue slider
-        let mut slider = Slider::new(
-            (-0.26, -0.95),
+        let slider = Slider::new(
+            (-0.2, -0.95),
             (0.05, 0.3),
             [0.0, 0.0, 1.0, 1.0],
             204,
@@ -158,8 +166,8 @@ impl UiContext {
         );
         self.add_widget(Box::new(slider));
         // Alpha slider
-        let mut slider = Slider::new(
-            (-0.21, -0.95),
+        let slider = Slider::new(
+            (-0.15, -0.95),
             (0.05, 0.3),
             [0.5, 0.5, 0.5, 1.0],
             255,

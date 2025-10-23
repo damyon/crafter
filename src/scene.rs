@@ -118,12 +118,30 @@ impl Scene {
     fn select_file_to_open(&mut self) {
         let file = FileDialog::new()
             .set_directory(".") // Optional: set the starting directory
+            .add_filter("Scene", &["scn"])
             .pick_file();
 
         if let Some(path) = file {
             println!("The user picked: {:?}", path);
-            // You can now open the file using Rust's standard library
-            // and do something with its contents.
+            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+
+            self.model
+                .load(path.as_path().to_str().unwrap(), camera_eye);
+        } else {
+            println!("The user canceled the operation.");
+        }
+    }
+
+    fn select_file_to_save(&mut self) {
+        let file = FileDialog::new()
+            .set_directory(".")
+            .add_filter("Scene", &["scn"])
+            .save_file();
+
+        if let Some(path) = file {
+            println!("The user picked: {:?}", path);
+
+            self.model.save(path.as_path().to_str().unwrap());
         } else {
             println!("The user canceled the operation.");
         }
@@ -152,11 +170,6 @@ impl Scene {
         self.dirty = true;
 
         self.command_input.queue_command(command);
-    }
-
-    /// Change this scene name.
-    pub fn set_name(&mut self, name: String) {
-        self.model.set_name(name);
     }
 
     /// Something changed - we need to recalculate the drawables cache.
@@ -353,8 +366,8 @@ impl Scene {
     }
 
     /// Save the scene to the browser.
-    pub async fn save_scene(&self) {
-        self.model.save().await;
+    pub fn save_scene(&self, path: &str) {
+        self.model.save(path);
     }
 
     /// Move the selection shape left.
@@ -538,6 +551,8 @@ impl Scene {
         }
         match key {
             1 => self.select_file_to_open(),
+
+            2 => self.select_file_to_save(),
             // Q
             16 => self.handle_move_up(),
             // E
@@ -670,15 +685,14 @@ impl Scene {
     }
 
     /// Load a scene from the browser.
-    pub async fn load_scene(&mut self) {
-        let name = {
+    pub async fn load_scene(&mut self, path: &str) {
+        {
             self.drawing = false;
             self.loading = true;
-            self.model.voxels.name.clone()
-        };
+        }
 
-        let storage = Storage::new();
-        let serial: Option<StoredOctree> = storage.load_scene(name).await;
+        let storage = Storage::new(path);
+        let serial: Option<StoredOctree> = storage.load_scene();
         if serial.is_some() {
             let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
             self.model
@@ -688,15 +702,6 @@ impl Scene {
             self.loading = false;
         }
         self.invalidate_drawables_cache();
-    }
-
-    /// Delete a scene from the browser.
-    pub async fn delete_scene(&mut self) {
-        let model = {
-            self.model.voxels.clear();
-            self.model.clone()
-        };
-        model.delete_scene().await;
     }
 
     /// Enable color noise.
@@ -720,8 +725,8 @@ impl Scene {
 
     /// Load the default scene.
     pub async fn load_first_scene(&mut self) {
-        let storage = Storage::new();
-        let serial: Option<StoredOctree> = storage.load_first_scene().await;
+        let storage = Storage::new("");
+        let serial: Option<StoredOctree> = storage.load_first_scene();
         if serial.is_some() {
             let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
             self.model

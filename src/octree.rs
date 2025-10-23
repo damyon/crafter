@@ -5,7 +5,6 @@ use crate::stored_octree::StoredOctree;
 /// An octree has a name and a tree of nodes.
 #[derive(Clone)]
 pub struct Octree {
-    pub name: String,
     root: Ocnode,
     depth: u32,
 }
@@ -14,7 +13,6 @@ impl Octree {
     /// Create a new Octree
     pub const fn new() -> Octree {
         Octree {
-            name: String::new(),
             root: Ocnode::new(),
             depth: 1,
         }
@@ -49,18 +47,16 @@ impl Octree {
         self.decimate(crate::ocnode::LEVELS);
     }
 
-    /// Change the name of the scene.
-    pub fn set_name(&mut self, name: String) {
-        self.name = name;
-    }
-
-    /// Load the scene from browser indexeddb.
+    /// Load the scene from disk.
     pub fn load_from_serial(&mut self, source: StoredOctree, camera_eye: [f32; 3]) {
-        self.name = source.name;
-
         self.root.clear();
 
+        println!("Clear the nodes");
+        println!("Apply new nodes: {}", source.active_nodes.len());
+        let mut index = 0;
         for node in source.active_nodes {
+            index += 1;
+            println!("Applying node {}", index);
             self.root.apply(&node);
         }
         self.root.optimize(camera_eye);
@@ -94,7 +90,6 @@ impl Octree {
     /// Serialize the tree.
     pub fn prepare(&self) -> StoredOctree {
         StoredOctree {
-            name: String::from(self.name.as_str()),
             active_nodes: self.active_nodes(),
         }
     }

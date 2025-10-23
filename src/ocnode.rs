@@ -320,26 +320,20 @@ impl Ocnode {
 
     /// Used when restoring from serial form.
     pub fn apply(&mut self, node: &Ocnode) {
-        if node.x_index == self.x_index
-            && node.y_index == self.y_index
-            && node.z_index == self.z_index
-            && node.sub_division_level == self.sub_division_level
-        {
-            // We got a match. Apply it.
-            self.active = node.active;
-            self.color = node.color;
-            self.fluid = node.fluid;
-            self.noise = node.noise;
-        }
-        let squirts = self.children.each_mut();
+        let found_opt = self.find_mut_by_index(
+            node.x_index,
+            node.y_index,
+            node.z_index,
+            node.sub_division_level,
+        );
 
-        for node_opt in squirts {
-            match node_opt {
-                None => {}
-                Some(squirt) => {
-                    squirt.apply(node);
-                }
-            };
+        if found_opt.is_some() {
+            let found = found_opt.unwrap();
+            // We got a match. Apply it.
+            found.active = node.active;
+            found.color = node.color;
+            found.fluid = node.fluid;
+            found.noise = node.noise;
         }
     }
 

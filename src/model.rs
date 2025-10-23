@@ -35,11 +35,6 @@ impl Model {
         self.voxels.init();
     }
 
-    /// Set the name of the scene. Used to save/restore.
-    pub fn set_name(&mut self, name: String) {
-        self.voxels.set_name(name);
-    }
-
     pub fn toggle_voxels(
         &mut self,
         positions: Vec<[i32; 3]>,
@@ -58,19 +53,19 @@ impl Model {
         self.voxels.all_voxels_active(positions)
     }
 
-    /// Delete a scene from browser indexeddb
-    pub async fn delete_scene(&self) {
-        let storage = Storage::new();
-        if self.voxels.name != "Default" {
-            _ = storage.delete_scene(self.voxels.name.to_string()).await;
-        }
+    /// Save a scene to browser indexeddb
+    pub fn save(&self, path: &str) {
+        let storage = Storage::new(path);
+
+        let serial = self.voxels.prepare();
+        _ = storage.save(serial);
     }
 
     /// Save a scene to browser indexeddb
-    pub async fn save(&self) {
-        let storage = Storage::new();
+    pub fn load(&mut self, path: &str, camera_eye: [f32; 3]) {
+        let storage = Storage::new(path);
 
-        let serial = self.voxels.prepare();
-        _ = storage.save(serial).await;
+        let loaded = storage.load_first_scene().unwrap();
+        self.voxels.load_from_serial(loaded, camera_eye);
     }
 }

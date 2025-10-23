@@ -1,7 +1,6 @@
 use crate::stored_octree::StoredOctree;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
@@ -15,44 +14,43 @@ struct UserRef {
 
 /// We don't use this struct.
 pub struct Storage {
-    _noop: f32,
+    path: String,
 }
 
 impl Storage {
     /// Create a new storage.
-    pub fn new() -> Storage {
-        Storage { _noop: 0.0 }
+    pub fn new(path: &str) -> Storage {
+        Storage {
+            path: path.to_string(),
+        }
     }
 
     /// Save a scene (later in a different thread)
-    pub async fn save(self, data: StoredOctree) {
+    pub fn save(self, data: StoredOctree) {
         let json_string =
             serde_json::to_string_pretty(&data).expect("Failed to serialize the octree");
 
         // Create and write to the file
-        let mut file = File::create("output.json").expect("Failed to create file");
+        let mut file = File::create(self.path).expect("Failed to create file");
         file.write_all(json_string.as_bytes())
             .expect("Failed to write to file");
     }
 
-    /// Delete a scene.
-    pub async fn delete_scene(self, _name: String) {
-        fs::remove_file("output.json").expect("Was not deleted");
-    }
-
     /// Load a scene.
-    pub async fn load_scene(self, _name: String) -> Option<StoredOctree> {
-        let file = File::open("output.json").expect("File did not exist");
+    pub fn load_scene(self) -> Option<StoredOctree> {
+        let file = File::open(self.path.as_str()).expect("File did not exist");
         let reader = BufReader::new(file);
 
+        println!("Read scene from file: {}", self.path);
         // Deserialize the JSON contents of the file into a MyData struct
         let from_disk: StoredOctree = serde_json::from_reader(reader).expect("Failed to read json");
+
         Some(from_disk)
     }
 
     /// Load the default scene.
-    pub async fn load_first_scene(self) -> Option<StoredOctree> {
-        self.load_scene("Default".to_string()).await
+    pub fn load_first_scene(self) -> Option<StoredOctree> {
+        self.load_scene()
     }
 
     /// Get a list of saved scenes.
