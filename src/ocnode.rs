@@ -334,6 +334,12 @@ impl Ocnode {
             found.color = node.color;
             found.fluid = node.fluid;
             found.noise = node.noise;
+            found.back_occluded_calculated = node.back_occluded_calculated;
+            found.front_occluded_calculated = node.front_occluded_calculated;
+            found.top_occluded_calculated = node.top_occluded_calculated;
+            found.bottom_occluded_calculated = node.bottom_occluded_calculated;
+            found.left_occluded_calculated = node.left_occluded_calculated;
+            found.right_occluded_calculated = node.right_occluded_calculated;
         }
     }
 
