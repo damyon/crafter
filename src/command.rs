@@ -4,9 +4,14 @@ pub enum CommandType {
     MouseMoved,
     MouseDown,
     MouseUp,
+    MouseClick,
     KeyDown,
     MouseScroll,
     SliderMoved,
+    SetMaterialRed,
+    SetMaterialGreen,
+    SetMaterialBlue,
+    SetMaterialAlpha,
 }
 
 /// A command that can be queued with the data that came with it.

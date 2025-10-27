@@ -64,7 +64,27 @@ impl Widget for Slider {
             CommandType::MouseDown => {
                 let x = f32::from_bits(command.data1);
                 let y = f32::from_bits(command.data2);
-                println!("Mouse down at ({}, {})", x, y);
+                if x >= self.position.0
+                    && x <= self.position.0 + self.size.0
+                    && y >= self.position.1
+                    && y <= self.position.1 + self.size.1
+                {
+                    let percentage = (y - self.position.1) / self.size.1;
+                    let new_value =
+                        percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
+                    self.current_value = new_value as usize;
+                    Some(Command {
+                        command_type: CommandType::SliderMoved,
+                        data1: self.slider_index,
+                        data2: self.current_value as u32,
+                    })
+                } else {
+                    None
+                }
+            }
+            CommandType::MouseMoved => {
+                let x = f32::from_bits(command.data1);
+                let y = f32::from_bits(command.data2);
                 if x >= self.position.0
                     && x <= self.position.0 + self.size.0
                     && y >= self.position.1

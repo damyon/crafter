@@ -31,6 +31,7 @@ mod scene;
 mod slider;
 mod storage;
 mod stored_octree;
+mod swatch;
 mod ui_context;
 mod vertex;
 mod widget;
@@ -51,6 +52,10 @@ fn main() {
 
     let mut cursor_x = 0;
     let mut cursor_y = 0;
+    let mut mouse_down_x = 0;
+    let mut mouse_down_y = 0;
+    let mut mouse_pressed = false;
+
     let mut window_width = width;
     let mut window_height = height;
     let mut graphics: Graphics = Graphics::new(width, height);
@@ -75,8 +80,12 @@ fn main() {
                     }
 
                     RedrawRequested => {
-                        scene.process_commands();
-                        let translated_commands = ui.process_commands();
+                        let mut translated_commands = scene.process_commands();
+                        translated_commands.iter().for_each(|command| {
+                            ui.queue_command(*command);
+                        });
+
+                        translated_commands = ui.process_commands();
                         translated_commands.iter().for_each(|command| {
                             scene.queue_command(*command);
                         });
@@ -102,11 +111,14 @@ fn main() {
                         match state {
                             ElementState::Pressed => match button {
                                 MouseButton::Left => {
+                                    mouse_pressed = true;
                                     // cursor to screen coordinates
                                     let screen_x =
                                         (cursor_x as f32 / window_width as f32) * 2.0 - 1.0;
                                     let screen_y =
                                         -((cursor_y as f32 / window_height as f32) * 2.0 - 1.0);
+                                    mouse_down_x = cursor_x;
+                                    mouse_down_y = cursor_y;
 
                                     let mouse_down = Command {
                                         command_type: CommandType::MouseDown,
@@ -120,13 +132,27 @@ fn main() {
                             },
                             ElementState::Released => match button {
                                 MouseButton::Left => {
+                                    mouse_pressed = false;
+                                    let screen_x =
+                                        (cursor_x as f32 / window_width as f32) * 2.0 - 1.0;
+                                    let screen_y =
+                                        -((cursor_y as f32 / window_height as f32) * 2.0 - 1.0);
                                     let mouse_up = Command {
                                         command_type: CommandType::MouseUp,
-                                        data1: 1,
-                                        data2: 1,
+                                        data1: screen_x.to_bits(),
+                                        data2: screen_y.to_bits(),
                                     };
+
                                     scene.queue_command(mouse_up);
                                     ui.queue_command(mouse_up);
+
+                                    if mouse_down_x == cursor_x && mouse_down_y == cursor_y {
+                                        let mouse_click = Command {
+                                            command_type: CommandType::MouseClick,
+                                            data1: screen_x.to_bits(),
+                                            data2: screen_y.to_bits(),
+                                        };
+                                    }
                                 }
                                 _ => {}
                             },
@@ -138,16 +164,20 @@ fn main() {
                     } => {
                         // Ignore the device ID for now.
                         _ = device_id;
+                        let screen_x = (cursor_x as f32 / window_width as f32) * 2.0 - 1.0;
+                        let screen_y = -((cursor_y as f32 / window_height as f32) * 2.0 - 1.0);
                         let mouse_moved = Command {
                             command_type: CommandType::MouseMoved,
-                            data1: position.x as u32,
-                            data2: position.y as u32,
+                            data1: screen_x.to_bits(),
+                            data2: screen_y.to_bits(),
                         };
+                        scene.queue_command(mouse_moved);
+                        if mouse_pressed {
+                            ui.queue_command(mouse_moved);
+                            //scene.process_commands();
+                        }
                         cursor_x = position.x as u32;
                         cursor_y = position.y as u32;
-                        scene.queue_command(mouse_moved);
-                        ui.queue_command(mouse_moved);
-                        scene.process_commands();
                     }
                     KeyboardInput { event, .. } => {
                         if event.state == ElementState::Pressed {
@@ -158,7 +188,7 @@ fn main() {
                             };
                             scene.queue_command(key_pressed);
                             ui.queue_command(key_pressed);
-                            scene.process_commands();
+                            //scene.process_commands();
                         }
                     }
                     MouseWheel { delta, .. } => match delta {
@@ -171,7 +201,7 @@ fn main() {
                             println!("Mouse wheel scrolled: x={}, y={}", x, y);
                             scene.queue_command(mouse_wheel);
                             ui.queue_command(mouse_wheel);
-                            scene.process_commands();
+                            //scene.process_commands();
                         }
                         _ => {}
                     },

@@ -199,9 +199,11 @@ impl Scene {
 
     /// Process a mouse moved event.
     pub fn handle_mouse_moved(&mut self, command: &Command) {
-        let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
+        let x = f32::from_bits(command.data1);
+        let y = f32::from_bits(command.data2);
+        let current_position = Point2::new(x, y);
 
-        if self.mouse.is_pressed {
+        if self.mouse.is_pressed && (y > -0.6) {
             let position_diff = Point2::new(
                 current_position.x - self.mouse.last_position.x,
                 current_position.y - self.mouse.last_position.y,
@@ -217,7 +219,7 @@ impl Scene {
             let scaled_direction = scale * current_camera_direction;
             let scaled_point =
                 Point3::new(scaled_direction.x, scaled_direction.y, scaled_direction.z);
-            let blunting = 100.0;
+            let blunting = 0.1;
             let current_camera_eye_2d = Point2::new(current_camera_eye.x, current_camera_eye.z);
             let current_camera_target_2d = Point2::new(
                 scaled_point.x + current_camera_eye.x,
@@ -234,7 +236,7 @@ impl Scene {
 
             // Up down does not need rotation.
 
-            self.camera.eye.y += position_diff.y as f32 / 10.0f32;
+            self.camera.eye.y += position_diff.y as f32 / blunting;
 
             let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
             self.model.optimize(camera_eye);
@@ -434,36 +436,63 @@ impl Scene {
         self.invalidate_selection_cache();
     }
 
-    pub fn handle_slider_moved(&mut self, command: &Command) {
+    pub fn handle_slider_moved(&mut self, command: &Command) -> Vec<Command> {
         let value: f32 = command.data1 as f32 / 100.0;
+        let mut translated_commands = Vec::new();
         match command.data1 {
             0 => {
                 let value = command.data2;
                 // Value is red from 0 to 255
                 //
                 self.material_color[0] = value as f32 / 255.0;
+                translated_commands.push(Command {
+                    command_type: CommandType::SetMaterialRed,
+                    data1: self.material_color[0].to_bits(),
+                    data2: self.material_color[0].to_bits(),
+                });
             }
             1 => {
                 let value = command.data2;
                 // Value is green from 0 to 255
                 //
                 self.material_color[1] = value as f32 / 255.0;
+                translated_commands.push(Command {
+                    command_type: CommandType::SetMaterialGreen,
+                    data1: self.material_color[1].to_bits(),
+                    data2: self.material_color[1].to_bits(),
+                });
             }
             2 => {
                 let value = command.data2;
                 // Value is blue from 0 to 255
                 //
                 self.material_color[2] = value as f32 / 255.0;
+                translated_commands.push(Command {
+                    command_type: CommandType::SetMaterialBlue,
+                    data1: self.material_color[2].to_bits(),
+                    data2: self.material_color[2].to_bits(),
+                });
             }
             3 => {
                 let value = command.data2;
                 // Value is alpha from 0 to 255
                 //
                 self.material_color[3] = value as f32 / 255.0;
+                translated_commands.push(Command {
+                    command_type: CommandType::SetMaterialAlpha,
+                    data1: self.material_color[3].to_bits(),
+                    data2: self.material_color[3].to_bits(),
+                });
             }
 
             _ => {}
         }
+
+        translated_commands
+    }
+
+    pub fn handle_mouse_click(&mut self, command: &Command) {
+        let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
     }
 
     /// Handle the mouse scroll.
@@ -601,19 +630,23 @@ impl Scene {
     }
 
     /// Process the command queue.
-    pub fn process_commands(&mut self) {
+    pub fn process_commands(&mut self) -> Vec<Command> {
         let mut command_opt = self.command_input.next();
+        let mut translated_commands = Vec::<Command>::new();
 
         while let Some(command) = command_opt {
             match command.command_type {
                 CommandType::SliderMoved => {
-                    self.handle_slider_moved(&command);
+                    translated_commands.extend(self.handle_slider_moved(&command));
                 }
                 CommandType::MouseDown => {
                     self.handle_mouse_down();
                 }
                 CommandType::MouseUp => {
                     self.handle_mouse_up();
+                }
+                CommandType::MouseClick => {
+                    self.handle_mouse_click(&command);
                 }
                 CommandType::MouseMoved => {
                     self.handle_mouse_moved(&command);
@@ -624,10 +657,12 @@ impl Scene {
                 CommandType::MouseScroll => {
                     self.handle_mouse_scroll(&command);
                 }
+                _ => {}
             }
 
             command_opt = self.command_input.next();
         }
+        translated_commands
     }
 
     /// Should we render the current frame?
@@ -742,7 +777,7 @@ impl Scene {
 
     /// Init the scene.
     pub fn init(&mut self) {
-        self.light.eye = Point3::new(15.0, 60.0, 14.0);
+        self.light.eye = Point3::new(60.0, 60.0, 60.0);
         self.light.target = Point3::new(0.0, 0.0, 0.0);
         self.selection_cube.scale = 0.8f32;
         self.selection_cube.color = [0.8, 0.8, 0.8, 0.5];
@@ -901,13 +936,14 @@ impl Scene {
             self.invalidate_vertices = false;
             graphics.invalidate_vertices_cache();
         }
-        graphics.prepare_shadow_frame();
+        /*graphics.prepare_shadow_frame();
 
         for voxel in self.model.drawables().iter() {
             graphics.draw_shadow(display, voxel, self.light);
         }
 
         graphics.finish_shadow_frame();
+        */
 
         graphics.prepare_camera_frame(frame);
         if self.selection_cache.len() == 0 {

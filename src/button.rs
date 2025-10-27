@@ -70,7 +70,6 @@ impl Widget for Button {
             CommandType::MouseDown => {
                 let x = f32::from_bits(command.data1);
                 let y = f32::from_bits(command.data2);
-                println!("Mouse down at ({}, {})", x, y);
                 if x >= self.position.0
                     && x <= self.position.0 + self.size.0
                     && y >= self.position.1

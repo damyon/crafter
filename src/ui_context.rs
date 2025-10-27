@@ -2,6 +2,7 @@ use crate::button::Button;
 use crate::command::Command;
 use crate::command_queue::CommandQueue;
 use crate::slider::Slider;
+use crate::swatch::Swatch;
 use crate::widget::Widget;
 
 use glium::Frame;
@@ -176,6 +177,10 @@ impl UiContext {
         );
 
         self.add_widget(Box::new(slider));
+
+        let swatch = Swatch::new((-0.09, -0.95), (0.1, 0.1), [0.8, 0.8, 0.8, 1.0]);
+
+        self.add_widget(Box::new(swatch));
     }
 
     /// Adds a widget to the UI context.

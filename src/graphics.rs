@@ -43,8 +43,8 @@ impl Graphics {
         self.shadow_depth_texture = Some(
             Texture2d::empty_with_format(
                 display,
-                UncompressedFloatFormat::F32F32F32F32, // Example format: RGBA with 32-bit floats
-                MipmapsOption::NoMipmap,               // No mipmaps for this example
+                UncompressedFloatFormat::F32F32F32F32, // Often 16-bit depth is enough
+                MipmapsOption::NoMipmap,
                 self.shadow_texture_size,
                 self.shadow_texture_size,
             )
@@ -191,35 +191,7 @@ impl Graphics {
                 void main(void) {
                     float ambientLight = 0.5;
                     vec3 positionFromLightPovInTexture = positionFromLightPov.xyz/positionFromLightPov.w * 0.5 + 0.5;
-                    float shadowNess = rand(positionFromLightPovInTexture.xy) / 1.6 + 0.4;
-                    shadowNess = 0.0;
-                    float texelSize = 2.0 / 4096.0;
 
-                    const int blend = 5;
-
-                    float blendLength = float(blend) * 2.0 + 1.0;
-                    blendLength = blendLength * blendLength;
-
-                    for (int x = -blend; x <= blend; x++) {
-
-                        for (int y = -blend; y <= blend; y++) {
-                            int bigx = 1 * x;
-                            int bigy = 1 * y;
-                            float depth = texture(shadowMap, positionFromLightPovInTexture.xy + vec2(bigx, bigy) * texelSize).x;
-
-                            // Range for positionFromLightPovInTexture.z is about 0.24 to 0.31
-                            //shadow = positionFromLightPovInTexture.z < 0.31;
-
-                            // Range for depthValue is about 0.21 to 0.31
-                            // false is black?
-                            if (depth < positionFromLightPovInTexture.z) {
-                                shadowNess += 1.0;
-                            }
-
-                        }
-                    }
-
-                    shadowNess /= blendLength;
 
                     // Diffuse
                     vec3 lightDir = normalize(-(vec3(-3.0, -10.0, 5.0)));
@@ -227,7 +199,7 @@ impl Graphics {
                     float shade = max(dot(normal, lightDir), 0.0);
 
 
-                    float combined = ambientLight + 0.6 * shade - 0.2 * shadowNess;
+                    float combined = ambientLight + 0.6 * shade;
                     float fluidCompensation = 1.0;
                     float noiseCompensation = 1.0;
 
@@ -304,11 +276,8 @@ impl Graphics {
             }),
             ..Default::default()
         };
-        let mut surface = self
-            .shadow_depth_texture
-            .as_ref()
-            .expect("Shadow depth texture not initialized")
-            .as_surface();
+
+        let mut surface = self.shadow_depth_texture.as_ref().unwrap().as_surface();
         surface
             .draw(
                 &vertices_buffer,
@@ -373,7 +342,7 @@ impl Graphics {
         let light_model_view = (light_view * model).to_homogeneous();
         let light_model_view_array: [[f32; 4]; 4] = light_model_view.into();
         let light_projection_array: [[f32; 4]; 4] = light_projection_matrix.into();
-        let shadow_texture = self.shadow_depth_texture.as_ref().unwrap();
+        //let shadow_texture = self.shadow_depth_texture.as_ref().unwrap();
         let uniforms = uniform! {
           u_color: *color,
           u_fluid: drawable.fluid() != 0,
@@ -385,7 +354,7 @@ impl Graphics {
           uPMatrix: projection_array,
           u_light_MVMatrix: light_model_view_array,
           u_light_PMMatrix: light_projection_array,
-          shadowMap: shadow_texture
+         // shadowMap: shadow_texture
         };
 
         let params = glium::DrawParameters {
