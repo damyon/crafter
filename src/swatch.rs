@@ -37,30 +37,29 @@ impl Widget for Swatch {
         );
     }
 
-    fn process_command(&mut self, command: &Command) -> Option<Command> {
+    fn process_command(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::new();
+
         // Process window event.
         match command.command_type {
             CommandType::SetMaterialRed => {
                 let red = f32::from_bits(command.data1);
                 self.current_color[0] = red;
-                None
             }
             CommandType::SetMaterialGreen => {
                 let green = f32::from_bits(command.data1);
                 self.current_color[1] = green;
-                None
             }
             CommandType::SetMaterialBlue => {
                 let blue = f32::from_bits(command.data1);
                 self.current_color[2] = blue;
-                None
             }
             CommandType::SetMaterialAlpha => {
                 let alpha = f32::from_bits(command.data1);
                 self.current_color[3] = alpha;
-                None
             }
-            _ => None,
+            _ => (),
         }
+        translated_commands
     }
 }

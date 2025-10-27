@@ -448,7 +448,7 @@ impl Scene {
                 translated_commands.push(Command {
                     command_type: CommandType::SetMaterialRed,
                     data1: self.material_color[0].to_bits(),
-                    data2: self.material_color[0].to_bits(),
+                    data2: 0,
                 });
             }
             1 => {
@@ -459,7 +459,7 @@ impl Scene {
                 translated_commands.push(Command {
                     command_type: CommandType::SetMaterialGreen,
                     data1: self.material_color[1].to_bits(),
-                    data2: self.material_color[1].to_bits(),
+                    data2: 1,
                 });
             }
             2 => {
@@ -470,7 +470,7 @@ impl Scene {
                 translated_commands.push(Command {
                     command_type: CommandType::SetMaterialBlue,
                     data1: self.material_color[2].to_bits(),
-                    data2: self.material_color[2].to_bits(),
+                    data2: 2,
                 });
             }
             3 => {
@@ -481,7 +481,7 @@ impl Scene {
                 translated_commands.push(Command {
                     command_type: CommandType::SetMaterialAlpha,
                     data1: self.material_color[3].to_bits(),
-                    data2: self.material_color[3].to_bits(),
+                    data2: 3,
                 });
             }
 
@@ -493,6 +493,41 @@ impl Scene {
 
     pub fn handle_mouse_click(&mut self, command: &Command) {
         let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
+    }
+
+    pub fn handle_pick_material(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::new();
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialRed,
+            data1: self.material_color[0].to_bits(),
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialGreen,
+            data1: self.material_color[1].to_bits(),
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialBlue,
+            data1: self.material_color[2].to_bits(),
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialAlpha,
+            data1: self.material_color[3].to_bits(),
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialNoise,
+            data1: if self.noise { 1 } else { 0 },
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialFluid,
+            data1: if self.fluid { 1 } else { 0 },
+            data2: command.data2,
+        });
+        translated_commands
     }
 
     /// Handle the mouse scroll.
@@ -528,14 +563,6 @@ impl Scene {
         println!("F: Toggle fluid mode");
         println!("G: Toggle grid visibility");
         println!("N: Toggle material noise");
-        println!("F1: More Red");
-        println!("F2: More Green");
-        println!("F3: More Blue");
-        println!("F4: More Alpha");
-        println!("F5: Less Red");
-        println!("F6: Less Green");
-        println!("F7: Less Blue");
-        println!("F8: Less Alpha")
     }
 
     pub fn more_red(&mut self) {
@@ -629,6 +656,82 @@ impl Scene {
         }
     }
 
+    pub fn update_current_material_red(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::<Command>::new();
+        let red = f32::from_bits(command.data1);
+        println!("UpdateCurrentMaterialRed {}", red);
+        self.material_color[0] = red;
+        self.selection_cube.color = [
+            self.material_color[0],
+            self.material_color[1],
+            self.material_color[2],
+            0.5,
+        ];
+        translated_commands.push(Command {
+            command_type: CommandType::SetMaterialRed,
+            data1: command.data1,
+            data2: 0,
+        });
+        translated_commands
+    }
+
+    pub fn update_current_material_green(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::<Command>::new();
+        let green = f32::from_bits(command.data1);
+        println!("UpdateCurrentMaterialGreen {}", green);
+        self.material_color[1] = green;
+        self.selection_cube.color = [
+            self.material_color[0],
+            self.material_color[1],
+            self.material_color[2],
+            0.5,
+        ];
+        translated_commands.push(Command {
+            command_type: CommandType::SetMaterialGreen,
+            data1: command.data1,
+            data2: 1,
+        });
+        translated_commands
+    }
+
+    pub fn update_current_material_blue(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::<Command>::new();
+        let blue = f32::from_bits(command.data1);
+        println!("UpdateCurrentMaterialBlue {}", blue);
+        self.material_color[2] = blue;
+        self.selection_cube.color = [
+            self.material_color[0],
+            self.material_color[1],
+            self.material_color[2],
+            0.5,
+        ];
+        translated_commands.push(Command {
+            command_type: CommandType::SetMaterialBlue,
+            data1: command.data1,
+            data2: 2,
+        });
+        translated_commands
+    }
+
+    pub fn update_current_material_alpha(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::<Command>::new();
+        let alpha = f32::from_bits(command.data1);
+        println!("UpdateCurrentMaterialAlpha {}", alpha);
+        self.material_color[3] = alpha;
+        self.selection_cube.color = [
+            self.material_color[0],
+            self.material_color[1],
+            self.material_color[2],
+            0.5,
+        ];
+        translated_commands.push(Command {
+            command_type: CommandType::SetMaterialAlpha,
+            data1: command.data1,
+            data2: 3,
+        });
+        translated_commands
+    }
+
     /// Process the command queue.
     pub fn process_commands(&mut self) -> Vec<Command> {
         let mut command_opt = self.command_input.next();
@@ -656,6 +759,25 @@ impl Scene {
                 }
                 CommandType::MouseScroll => {
                     self.handle_mouse_scroll(&command);
+                }
+                CommandType::PickMaterial => {
+                    translated_commands.extend(self.handle_pick_material(&command));
+                }
+                CommandType::UpdateCurrentMaterialRed => {
+                    println!("UpdateCurrentMaterialRed");
+                    translated_commands.extend(self.update_current_material_red(&command));
+                }
+                CommandType::UpdateCurrentMaterialGreen => {
+                    println!("UpdateCurrentMaterialGreen");
+                    translated_commands.extend(self.update_current_material_green(&command));
+                }
+                CommandType::UpdateCurrentMaterialBlue => {
+                    println!("UpdateCurrentMaterialBlue");
+                    translated_commands.extend(self.update_current_material_blue(&command));
+                }
+                CommandType::UpdateCurrentMaterialAlpha => {
+                    println!("UpdateCurrentMaterialAlpha");
+                    translated_commands.extend(self.update_current_material_alpha(&command));
                 }
                 _ => {}
             }

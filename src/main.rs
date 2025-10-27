@@ -27,6 +27,7 @@ mod model;
 mod mouse;
 mod ocnode;
 mod octree;
+mod palette;
 mod scene;
 mod slider;
 mod storage;

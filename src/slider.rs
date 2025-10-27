@@ -58,7 +58,8 @@ impl Widget for Slider {
         );
     }
 
-    fn process_command(&mut self, command: &Command) -> Option<Command> {
+    fn process_command(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::new();
         // Process window event.
         match command.command_type {
             CommandType::MouseDown => {
@@ -73,13 +74,11 @@ impl Widget for Slider {
                     let new_value =
                         percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
                     self.current_value = new_value as usize;
-                    Some(Command {
+                    translated_commands.push(Command {
                         command_type: CommandType::SliderMoved,
                         data1: self.slider_index,
                         data2: self.current_value as u32,
                     })
-                } else {
-                    None
                 }
             }
             CommandType::MouseMoved => {
@@ -94,16 +93,52 @@ impl Widget for Slider {
                     let new_value =
                         percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
                     self.current_value = new_value as usize;
-                    Some(Command {
+                    translated_commands.push(Command {
                         command_type: CommandType::SliderMoved,
                         data1: self.slider_index,
                         data2: self.current_value as u32,
                     })
-                } else {
-                    None
                 }
             }
-            _ => None,
+            CommandType::SetMaterialRed => {
+                println!(
+                    "We are setting the red in the slider {} {}",
+                    self.slider_index, command.data2
+                );
+                if command.data2 == self.slider_index {
+                    println!("We are setting the RED in THIS slider");
+                    let percentage = f32::from_bits(command.data1);
+                    let new_value =
+                        percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
+                    self.current_value = new_value as usize;
+                }
+            }
+            CommandType::SetMaterialGreen => {
+                if command.data2 == self.slider_index {
+                    let percentage = f32::from_bits(command.data1);
+                    let new_value =
+                        percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
+                    self.current_value = new_value as usize;
+                }
+            }
+            CommandType::SetMaterialBlue => {
+                if command.data2 == self.slider_index {
+                    let percentage = f32::from_bits(command.data1);
+                    let new_value =
+                        percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
+                    self.current_value = new_value as usize;
+                }
+            }
+            CommandType::SetMaterialAlpha => {
+                if command.data2 == self.slider_index {
+                    let percentage = f32::from_bits(command.data1);
+                    let new_value =
+                        percentage * (self.range.1 - self.range.0) as f32 + self.range.0 as f32;
+                    self.current_value = new_value as usize;
+                }
+            }
+            _ => (),
         }
+        translated_commands
     }
 }

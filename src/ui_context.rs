@@ -1,6 +1,7 @@
 use crate::button::Button;
 use crate::command::Command;
 use crate::command_queue::CommandQueue;
+use crate::palette::Palette;
 use crate::slider::Slider;
 use crate::swatch::Swatch;
 use crate::widget::Widget;
@@ -31,10 +32,7 @@ impl UiContext {
 
         while let Some(command) = command_opt {
             for widget in &mut self.widgets {
-                let translated_command_opt = widget.process_command(&command);
-                if let Some(translated_command) = translated_command_opt {
-                    translated_commands.push(translated_command);
-                }
+                translated_commands.extend(widget.process_command(&command));
             }
 
             command_opt = self.command_input.next();
@@ -181,6 +179,67 @@ impl UiContext {
         let swatch = Swatch::new((-0.09, -0.95), (0.1, 0.1), [0.8, 0.8, 0.8, 1.0]);
 
         self.add_widget(Box::new(swatch));
+
+        let palette = Palette::new(
+            (0.02, -0.95),
+            (0.1, 0.1),
+            [0.8, 0.8, 0.8, 1.0],
+            false,
+            false,
+            0,
+        );
+
+        self.add_widget(Box::new(palette));
+        let palette = Palette::new(
+            (0.13, -0.95),
+            (0.1, 0.1),
+            [0.8, 0.8, 0.8, 1.0],
+            false,
+            false,
+            1,
+        );
+
+        self.add_widget(Box::new(palette));
+        let palette = Palette::new(
+            (0.24, -0.95),
+            (0.1, 0.1),
+            [0.8, 0.8, 0.8, 1.0],
+            false,
+            false,
+            2,
+        );
+
+        self.add_widget(Box::new(palette));
+        let palette = Palette::new(
+            (0.35, -0.95),
+            (0.1, 0.1),
+            [0.8, 0.8, 0.8, 1.0],
+            false,
+            false,
+            3,
+        );
+
+        self.add_widget(Box::new(palette));
+        let palette = Palette::new(
+            (0.46, -0.95),
+            (0.1, 0.1),
+            [0.8, 0.8, 0.8, 1.0],
+            false,
+            false,
+            4,
+        );
+
+        self.add_widget(Box::new(palette));
+        let palette = Palette::new(
+            (0.57, -0.95),
+            (0.1, 0.1),
+            [0.8, 0.8, 0.8, 1.0],
+            false,
+            false,
+            5,
+        );
+
+        self.add_widget(Box::new(palette));
     }
 
     /// Adds a widget to the UI context.

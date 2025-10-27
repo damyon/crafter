@@ -64,7 +64,8 @@ impl Widget for Button {
         }
     }
 
-    fn process_command(&mut self, command: &Command) -> Option<Command> {
+    fn process_command(&mut self, command: &Command) -> Vec<Command> {
+        let mut translated_commands = Vec::new();
         // Process window event.
         match command.command_type {
             CommandType::MouseDown => {
@@ -76,16 +77,15 @@ impl Widget for Button {
                     && y <= self.position.1 + self.size.1
                 {
                     self.current_state = (self.current_state + 1) % self.states.len();
-                    Some(Command {
+                    translated_commands.push(Command {
                         command_type: CommandType::KeyDown,
                         data1: self.mapped_key,
                         data2: self.mapped_key,
                     })
-                } else {
-                    None
                 }
             }
-            _ => None,
+            _ => (),
         }
+        translated_commands
     }
 }

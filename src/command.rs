@@ -12,6 +12,19 @@ pub enum CommandType {
     SetMaterialGreen,
     SetMaterialBlue,
     SetMaterialAlpha,
+    PickMaterial,
+    CurrentMaterialRed,
+    CurrentMaterialGreen,
+    CurrentMaterialBlue,
+    CurrentMaterialAlpha,
+    CurrentMaterialNoise,
+    CurrentMaterialFluid,
+    UpdateCurrentMaterialRed,
+    UpdateCurrentMaterialGreen,
+    UpdateCurrentMaterialBlue,
+    UpdateCurrentMaterialAlpha,
+    UpdateCurrentMaterialNoise,
+    UpdateCurrentMaterialFluid,
 }
 
 /// A command that can be queued with the data that came with it.
