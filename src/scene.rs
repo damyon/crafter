@@ -3,11 +3,13 @@ use crate::command_queue::CommandQueue;
 use crate::drawable::Drawable;
 use crate::graphics::Graphics;
 use crate::grid::Grid;
+use crate::material::Material;
 use crate::model::Model;
 use crate::mouse::Mouse;
 use crate::ocnode::Ocnode;
 use crate::storage::Storage;
 use crate::stored_octree::StoredOctree;
+use crate::vertex::Vertex;
 use crate::{camera::Camera, cube::Cube};
 use glium::Frame;
 use glium::backend::glutin::Display;
@@ -15,6 +17,7 @@ use glutin::surface::WindowSurface;
 use nalgebra::{Point2, Point3, Vector3};
 use rfd::FileDialog;
 use std::cmp::{max, min};
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 /// Simple list of supported selection shapes.
@@ -76,12 +79,16 @@ pub struct Scene {
     target_fps: u32,
     /// Only recalculate the drawables cache if the scene has changed.
     drawables_cache: Vec<Cube>,
+    /// Clear the drawables cache.
+    invalidate_drawables_cache: bool,
     /// Only recalculate the selection voxels cache if the scene has changed.
     selection_cache: Vec<[i32; 3]>,
     /// Flag to asynchronously invalidate the vertices cache in the graphics pipeline.
     invalidate_vertices: bool,
     /// Start time of the scene.
     start_time: Option<Instant>,
+    render_cache: Option<HashMap<Material, Vec<Vertex>>>,
+    invalidate_render_cache: bool,
 }
 
 impl Scene {
@@ -109,9 +116,12 @@ impl Scene {
             grid_visible: true,
             target_fps: 30,
             drawables_cache: Vec::new(),
+            invalidate_drawables_cache: false,
             selection_cache: Vec::new(),
             invalidate_vertices: false,
             start_time: None,
+            render_cache: None,
+            invalidate_render_cache: false,
         }
     }
 
@@ -127,6 +137,10 @@ impl Scene {
 
             self.model
                 .load(path.as_path().to_str().unwrap(), camera_eye);
+            self.invalidate_selection_cache();
+            self.invalidate_drawables_cache = true;
+            self.invalidate_vertices_cache();
+            self.invalidate_render_cache = true;
         } else {
             println!("The user canceled the operation.");
         }
@@ -172,14 +186,10 @@ impl Scene {
         self.command_input.queue_command(command);
     }
 
-    /// Something changed - we need to recalculate the drawables cache.
-    pub fn invalidate_drawables_cache(&mut self) {
-        self.drawables_cache.clear();
-    }
-
     /// Something changed - we need to recalculate the selection cache.
     pub fn invalidate_selection_cache(&mut self) {
         self.selection_cache.clear();
+        self.invalidate_render_cache = true;
     }
 
     pub fn invalidate_vertices_cache(&mut self) {
@@ -240,7 +250,7 @@ impl Scene {
 
             let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
             self.model.optimize(camera_eye);
-            self.invalidate_drawables_cache();
+            self.invalidate_drawables_cache = true;
         }
         self.mouse.last_position = current_position;
     }
@@ -260,7 +270,7 @@ impl Scene {
 
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         self.model.optimize(camera_eye);
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
     }
 
     /// The key was pressed to move down.
@@ -277,7 +287,7 @@ impl Scene {
         );
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         self.model.optimize(camera_eye);
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
     }
 
     /// The key was pressed to move left.
@@ -291,7 +301,7 @@ impl Scene {
         self.camera.target += projection;
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         self.model.optimize(camera_eye);
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
     }
 
     /// The key was pressed to move right.
@@ -305,7 +315,7 @@ impl Scene {
         self.camera.target -= projection;
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         self.model.optimize(camera_eye);
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
     }
 
     /// The key was pressed to move forward.
@@ -318,7 +328,7 @@ impl Scene {
         self.camera.target += projection;
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         self.model.optimize(camera_eye);
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
     }
 
     /// The key was pressed to move backwards.
@@ -331,7 +341,7 @@ impl Scene {
         self.camera.target += projection;
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         self.model.optimize(camera_eye);
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
     }
 
     /// The key was pressed to toggle the state of the current selection.
@@ -363,8 +373,9 @@ impl Scene {
         self.model
             .toggle_voxels(selections, !value, color, camera_eye, fluid, noise);
         self.invalidate_selection_cache();
-        self.invalidate_drawables_cache();
+        self.invalidate_drawables_cache = true;
         self.invalidate_vertices_cache();
+        self.invalidate_render_cache = true;
     }
 
     /// Save the scene to the browser.
@@ -437,7 +448,6 @@ impl Scene {
     }
 
     pub fn handle_slider_moved(&mut self, command: &Command) -> Vec<Command> {
-        let value: f32 = command.data1 as f32 / 100.0;
         let mut translated_commands = Vec::new();
         match command.data1 {
             0 => {
@@ -487,12 +497,13 @@ impl Scene {
 
             _ => {}
         }
-
+        self.invalidate_render_cache = true;
         translated_commands
     }
 
     pub fn handle_mouse_click(&mut self, command: &Command) {
         let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
+        println!("Mouse clicked at position: {:?}", current_position);
     }
 
     pub fn handle_pick_material(&mut self, command: &Command) -> Vec<Command> {
@@ -541,6 +552,7 @@ impl Scene {
             self.selection_radius = max(self.selection_radius - 1, min_selection_radius);
         }
         self.invalidate_selection_cache();
+        self.invalidate_render_cache = true;
     }
 
     pub fn print_keyboard_bindings(&self) {
@@ -659,7 +671,7 @@ impl Scene {
     pub fn update_current_material_red(&mut self, command: &Command) -> Vec<Command> {
         let mut translated_commands = Vec::<Command>::new();
         let red = f32::from_bits(command.data1);
-        println!("UpdateCurrentMaterialRed {}", red);
+
         self.material_color[0] = red;
         self.selection_cube.color = [
             self.material_color[0],
@@ -678,7 +690,7 @@ impl Scene {
     pub fn update_current_material_green(&mut self, command: &Command) -> Vec<Command> {
         let mut translated_commands = Vec::<Command>::new();
         let green = f32::from_bits(command.data1);
-        println!("UpdateCurrentMaterialGreen {}", green);
+
         self.material_color[1] = green;
         self.selection_cube.color = [
             self.material_color[0],
@@ -697,7 +709,7 @@ impl Scene {
     pub fn update_current_material_blue(&mut self, command: &Command) -> Vec<Command> {
         let mut translated_commands = Vec::<Command>::new();
         let blue = f32::from_bits(command.data1);
-        println!("UpdateCurrentMaterialBlue {}", blue);
+
         self.material_color[2] = blue;
         self.selection_cube.color = [
             self.material_color[0],
@@ -716,7 +728,7 @@ impl Scene {
     pub fn update_current_material_alpha(&mut self, command: &Command) -> Vec<Command> {
         let mut translated_commands = Vec::<Command>::new();
         let alpha = f32::from_bits(command.data1);
-        println!("UpdateCurrentMaterialAlpha {}", alpha);
+
         self.material_color[3] = alpha;
         self.selection_cube.color = [
             self.material_color[0],
@@ -764,19 +776,15 @@ impl Scene {
                     translated_commands.extend(self.handle_pick_material(&command));
                 }
                 CommandType::UpdateCurrentMaterialRed => {
-                    println!("UpdateCurrentMaterialRed");
                     translated_commands.extend(self.update_current_material_red(&command));
                 }
                 CommandType::UpdateCurrentMaterialGreen => {
-                    println!("UpdateCurrentMaterialGreen");
                     translated_commands.extend(self.update_current_material_green(&command));
                 }
                 CommandType::UpdateCurrentMaterialBlue => {
-                    println!("UpdateCurrentMaterialBlue");
                     translated_commands.extend(self.update_current_material_blue(&command));
                 }
                 CommandType::UpdateCurrentMaterialAlpha => {
-                    println!("UpdateCurrentMaterialAlpha");
                     translated_commands.extend(self.update_current_material_alpha(&command));
                 }
                 _ => {}
@@ -847,6 +855,7 @@ impl Scene {
             self.drawing = false;
             self.loading = true;
         }
+        println!("This is load from file");
 
         let storage = Storage::new(path);
         let serial: Option<StoredOctree> = storage.load_scene();
@@ -857,8 +866,12 @@ impl Scene {
                 .load_from_serial(serial.unwrap(), camera_eye);
             self.drawing = true;
             self.loading = false;
+            println!("We are done loading - invalidate all the things.");
+            self.invalidate_selection_cache();
+            self.invalidate_drawables_cache = true;
+            self.invalidate_vertices_cache();
+            self.invalidate_render_cache = true;
         }
-        self.invalidate_drawables_cache();
     }
 
     /// Enable color noise.
@@ -899,6 +912,7 @@ impl Scene {
 
     /// Init the scene.
     pub fn init(&mut self) {
+        self.render_cache = Some(HashMap::new());
         self.light.eye = Point3::new(60.0, 60.0, 60.0);
         self.light.target = Point3::new(0.0, 0.0, 0.0);
         self.selection_cube.scale = 0.8f32;
@@ -911,6 +925,7 @@ impl Scene {
         self.start_time = Some(Instant::now());
 
         self.print_keyboard_bindings();
+        self.invalidate_render_cache = true;
     }
 
     /// Quicker than distance - no sqrt.
@@ -1058,54 +1073,110 @@ impl Scene {
             self.invalidate_vertices = false;
             graphics.invalidate_vertices_cache();
         }
-        /*graphics.prepare_shadow_frame();
-
-        for voxel in self.model.drawables().iter() {
-            graphics.draw_shadow(display, voxel, self.light);
-        }
-
-        graphics.finish_shadow_frame();
-        */
 
         graphics.prepare_camera_frame(frame);
-        if self.selection_cache.len() == 0 {
-            self.selection_cache = Self::selection_voxels(
-                &self.selection_position,
-                self.selection_radius as i32,
-                self.selection_shape,
-            );
-        }
-        for selection in &self.selection_cache {
-            self.selection_cube.translation = [
-                selection[0] as f32 + 0.1,
-                selection[1] as f32 + 0.1,
-                selection[2] as f32 + 0.1,
-            ];
-            graphics.draw(
-                display,
-                frame,
-                &self.selection_cube,
-                self.camera,
-                self.light,
-                self.elapsed,
-            );
-        }
 
-        if self.drawables_cache.len() == 0 {
-            let mut drawables: Vec<Cube> = self.model.drawables();
+        if self.invalidate_render_cache {
+            self.render_cache
+                .as_mut()
+                .expect("Render cache should be initialized")
+                .clear();
+            self.invalidate_render_cache = false;
 
-            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
-            drawables.sort_by(|a, b| {
-                let a_dist = a.depth(camera_eye);
-                let b_dist = b.depth(camera_eye);
+            /*graphics.prepare_shadow_frame();
 
-                b_dist.partial_cmp(&a_dist).unwrap()
-            });
-            self.drawables_cache = drawables;
-            self.drawables_cache = self.model.drawables();
-        }
-        for voxel in self.drawables_cache.iter() {
-            graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
+            for voxel in self.model.drawables().iter() {
+                graphics.draw_shadow(display, voxel, self.light);
+            }
+
+            graphics.finish_shadow_frame();
+            */
+
+            if self.selection_cache.len() == 0 {
+                self.selection_cache = Self::selection_voxels(
+                    &self.selection_position,
+                    self.selection_radius as i32,
+                    self.selection_shape,
+                );
+            }
+
+            for selection in &self.selection_cache {
+                self.selection_cube.translation = [
+                    selection[0] as f32 + 0.1,
+                    selection[1] as f32 + 0.1,
+                    selection[2] as f32 + 0.1,
+                ];
+
+                let vertices = self.selection_cube.vertices_world();
+                let material = Material::new(
+                    self.material_color,
+                    self.selection_cube.noise,
+                    self.selection_cube.fluid,
+                );
+                self.render_cache
+                    .as_mut()
+                    .expect("Render cache should be initialized")
+                    .entry(material)
+                    .or_insert_with(Vec::new)
+                    .extend(vertices);
+                /*graphics.draw(
+                    display,
+                    frame,
+                    &self.selection_cube,
+                    self.camera,
+                    self.light,
+                    self.elapsed,
+                );*/
+            }
+
+            if self.invalidate_drawables_cache {
+                self.invalidate_drawables_cache = false;
+                let mut drawables: Vec<Cube> = self.model.drawables();
+
+                let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
+                drawables.sort_by(|a, b| {
+                    let a_dist = a.depth(camera_eye);
+                    let b_dist = b.depth(camera_eye);
+
+                    b_dist.partial_cmp(&a_dist).unwrap()
+                });
+                self.drawables_cache = drawables;
+                self.drawables_cache = self.model.drawables();
+            }
+
+            for voxel in self.drawables_cache.iter() {
+                let vertices = voxel.vertices_world();
+                let material = Material::new(voxel.color, voxel.noise, voxel.fluid);
+                self.render_cache
+                    .as_mut()
+                    .expect("Render cache should be initialized")
+                    .entry(material)
+                    .or_insert_with(Vec::new)
+                    .extend(vertices);
+                //graphics.draw(display, frame, voxel, self.camera, self.light, self.elapsed);
+            }
+        } else {
+            for material in self
+                .render_cache
+                .as_ref()
+                .expect("Render cache should be initialized")
+                .keys()
+            {
+                // Process each material here
+                graphics.draw_vertices(
+                    display,
+                    frame,
+                    material,
+                    self.render_cache
+                        .as_ref()
+                        .expect("Render cache should be initialized")
+                        .get(material)
+                        .unwrap(),
+                    self.camera,
+                    self.light,
+                    self.elapsed,
+                );
+            }
         }
 
         if self.grid_visible {

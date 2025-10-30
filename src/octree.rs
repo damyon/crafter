@@ -60,6 +60,7 @@ impl Octree {
             self.root.apply(&node);
         }
         self.root.optimize(camera_eye);
+        println!("Load from serial done");
     }
 
     /// Generate the list of drawables from the tree of cubes.

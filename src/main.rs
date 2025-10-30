@@ -11,6 +11,7 @@ use glium::winit::event::WindowEvent::{
 use glium::winit::event::{ElementState, MouseButton, MouseScrollDelta};
 use glium::winit::event_loop::EventLoop;
 use glium::winit::platform::scancode::PhysicalKeyExtScancode;
+use std::time::Duration;
 use std::time::Instant;
 mod graphics;
 
@@ -23,6 +24,7 @@ mod cube;
 mod drawable;
 mod grid;
 mod image_vertex;
+mod material;
 mod model;
 mod mouse;
 mod ocnode;
@@ -63,6 +65,8 @@ fn main() {
     graphics.setup_shaders(&display);
 
     let mut ui = UiContext::new();
+    let mut last_fps = Instant::now();
+    let mut fps_count = 0;
     ui.create_default_ui();
 
     #[allow(deprecated)]
@@ -92,14 +96,18 @@ fn main() {
                         });
 
                         if scene.throttle() {
-                            let start = Instant::now();
                             let mut frame = display.draw();
                             // By finishing the frame swap buffers and thereby make it visible on the window
                             scene.draw(&display, &mut frame, &mut graphics);
                             ui.draw(&display, &mut frame);
                             frame.finish().unwrap();
                             let end = Instant::now();
-                            //       println!("Frame time: {:?}", end - start);
+                            fps_count += 1;
+                            if end - last_fps > Duration::from_millis(1000 * 10) {
+                                println!("FPS: {:?}", fps_count as f32 / 10.0);
+                                fps_count = 0;
+                                last_fps = end;
+                            }
                         }
                     }
                     MouseInput {
@@ -153,6 +161,8 @@ fn main() {
                                             data1: screen_x.to_bits(),
                                             data2: screen_y.to_bits(),
                                         };
+                                        scene.queue_command(mouse_click);
+                                        ui.queue_command(mouse_click);
                                     }
                                 }
                                 _ => {}

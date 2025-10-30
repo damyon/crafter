@@ -38,7 +38,7 @@ impl Widget for Swatch {
     }
 
     fn process_command(&mut self, command: &Command) -> Vec<Command> {
-        let mut translated_commands = Vec::new();
+        let translated_commands = Vec::new();
 
         // Process window event.
         match command.command_type {

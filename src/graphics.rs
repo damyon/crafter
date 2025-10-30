@@ -1,10 +1,13 @@
 use crate::camera::Camera;
+
 use crate::drawable::Drawable;
+use crate::material::Material;
 use crate::vertex::Vertex;
 use glium::Frame;
 use glium::Program;
 use glium::Surface;
 use glium::backend::glutin::Display;
+use glium::index::PrimitiveType;
 use glium::texture::MipmapsOption;
 use glium::texture::Texture2d;
 use glium::texture::UncompressedFloatFormat;
@@ -304,6 +307,7 @@ impl Graphics {
         elapsed: f32,
     ) {
         if !self.vertices_cache.contains_key(&drawable.key()) {
+            println!("Had to put something in the cache...");
             self.vertices_cache
                 .insert(drawable.key(), drawable.vertices());
         }
@@ -362,7 +366,89 @@ impl Graphics {
             blend: glium::Blend::alpha_blending(),
             backface_culling: glium::BackfaceCullingMode::CullClockwise,
             depth: glium::Depth {
-                test: glium::DepthTest::IfLess,
+                test: glium::DepthTest::IfLessOrEqual,
+                write: true,
+                ..Default::default()
+            },
+            viewport: Some(glium::Rect {
+                left: 0,
+                bottom: 0,
+                width: self.canvas_width,
+                height: self.canvas_height,
+            }),
+            ..Default::default()
+        };
+        frame
+            .draw(
+                &vertices_buffer,
+                &indices,
+                self.camera_program.as_ref().expect("Shader"),
+                &uniforms,
+                &params,
+            )
+            .unwrap();
+    }
+
+    /// Render to the actual color buffer.
+    pub fn draw_vertices(
+        &mut self,
+        display: &Display<WindowSurface>,
+        frame: &mut Frame,
+        material: &Material,
+        vertices: &Vec<Vertex>,
+        camera: Camera,
+        light: Camera,
+        elapsed: f32,
+    ) {
+        let vertices_buffer = glium::VertexBuffer::new(display, vertices.as_slice()).unwrap();
+        let indices = glium::index::NoIndices(PrimitiveType::TrianglesList);
+
+        // We need to calculate the model matrix for the drawable object
+        let eye = camera.eye;
+        let target = camera.target;
+        let view = Isometry3::look_at_rh(&eye, &target, &Vector3::y());
+
+        let model = Isometry3::new(
+            Vector3::from_row_slice(&[0.0, 0.0, 0.0]),
+            Vector3::from_row_slice(&[0.0, 0.0, 0.0]),
+        );
+
+        let projection_matrix = self.build_camera_projection();
+        let model_view = (view * model).to_homogeneous();
+        let model_matrix = model.to_homogeneous();
+        let model_view_array: [[f32; 4]; 4] = model_view.into();
+        let model_array: [[f32; 4]; 4] = model_matrix.into();
+        let projection_array: [[f32; 4]; 4] = projection_matrix.into();
+        // Also do these for the light matrices.
+
+        let light_eye = light.eye;
+        let light_target = light.target;
+        let light_view = Isometry3::look_at_rh(&light_eye, &light_target, &Vector3::y());
+        let light_projection_matrix = self.build_light_projection();
+        let light_model_view = (light_view * model).to_homogeneous();
+        let light_model_view_array: [[f32; 4]; 4] = light_model_view.into();
+        let light_projection_array: [[f32; 4]; 4] = light_projection_matrix.into();
+        //let shadow_texture = self.shadow_depth_texture.as_ref().unwrap();
+        let uniforms = uniform! {
+          u_color: material.upscale_color(),
+          u_fluid: material.fluid != 0,
+          u_noise: material.noise != 0,
+          u_time: elapsed,
+          u_shadow_texture_size:       self.shadow_texture_size,
+          uMVMatrix: model_view_array,
+          uMMatrix: model_array,
+          uPMatrix: projection_array,
+          u_light_MVMatrix: light_model_view_array,
+          u_light_PMMatrix: light_projection_array,
+         // shadowMap: shadow_texture
+        };
+
+        let params = glium::DrawParameters {
+            line_width: Some(2.0),
+            blend: glium::Blend::alpha_blending(),
+            backface_culling: glium::BackfaceCullingMode::CullClockwise,
+            depth: glium::Depth {
+                test: glium::DepthTest::IfLessOrEqual,
                 write: true,
                 ..Default::default()
             },

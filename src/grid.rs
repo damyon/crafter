@@ -1,5 +1,8 @@
 use crate::vertex::Vertex;
 use glium::index::PrimitiveType;
+use nalgebra::Isometry3;
+use nalgebra::Point3;
+use nalgebra::Vector3;
 
 /// A Grid is a drawable thing too.
 #[derive(Copy, Clone)]
@@ -109,6 +112,14 @@ impl Drawable for Grid {
 
         self.key = rand::random();
     }
+
+    fn material_key(&self) -> String {
+        format!(
+            "grid_{}_{}_{}_{}_{}_{}",
+            self.fluid, self.noise, self.color[0], self.color[1], self.color[2], self.color[3]
+        )
+    }
+
     fn key(&self) -> u64 {
         self.key
     }
@@ -125,6 +136,29 @@ impl Drawable for Grid {
 
     fn primitive_type(&self) -> glium::index::PrimitiveType {
         PrimitiveType::LinesList
+    }
+
+    fn vertices_world(&self) -> Vec<Vertex> {
+        let mut vertices = Vec::new();
+        let model_tr = Isometry3::new(
+            Vector3::from_row_slice(self.translation()),
+            Vector3::from_row_slice(self.rotation()),
+        );
+        let model_r = Isometry3::new(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::from_row_slice(self.rotation()),
+        );
+        for vertex in self.vertices() {
+            let mut vertex = vertex;
+            let funk = model_tr * Point3::from(vertex.position);
+            vertex.position = [funk.x, funk.y, funk.z];
+
+            let funk = model_r * Point3::from(vertex.normal);
+            vertex.normal = [funk.x, funk.y, funk.z];
+            vertices.push(vertex);
+        }
+
+        vertices
     }
 
     /// Move the grid.
