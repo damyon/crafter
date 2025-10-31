@@ -306,6 +306,9 @@ impl Graphics {
         light: Camera,
         elapsed: f32,
     ) {
+        let vertices_buffer =
+            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
+        /*
         if !self.vertices_cache.contains_key(&drawable.key()) {
             println!("Had to put something in the cache...");
             self.vertices_cache
@@ -317,6 +320,7 @@ impl Graphics {
             self.vertices_cache.get(&drawable.key()).unwrap().as_slice(),
         )
         .unwrap();
+        */
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         let color = drawable.color();

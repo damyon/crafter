@@ -14,7 +14,7 @@ use crate::{camera::Camera, cube::Cube};
 use glium::Frame;
 use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
-use nalgebra::{Point2, Point3, Vector3};
+use nalgebra::{Point2, Point3, Rotation3, Vector3};
 use rfd::FileDialog;
 use std::cmp::{max, min};
 use std::collections::HashMap;
@@ -139,7 +139,8 @@ impl Scene {
                 .load(path.as_path().to_str().unwrap(), camera_eye);
             self.invalidate_selection_cache();
             self.invalidate_drawables_cache = true;
-            self.invalidate_vertices_cache();
+
+            self.model.recalculate_occlusion();
             self.invalidate_render_cache = true;
         } else {
             println!("The user canceled the operation.");
@@ -192,11 +193,6 @@ impl Scene {
         self.invalidate_render_cache = true;
     }
 
-    pub fn invalidate_vertices_cache(&mut self) {
-        self.invalidate_vertices = true;
-        self.model.recalculate_occlusion();
-    }
-
     /// Process a mouse down event.
     pub fn handle_mouse_down(&mut self) {
         self.mouse.is_pressed = true;
@@ -216,41 +212,24 @@ impl Scene {
         if self.mouse.is_pressed && (y > -0.6) {
             let position_diff = Point2::new(
                 current_position.x - self.mouse.last_position.x,
-                current_position.y - self.mouse.last_position.y,
+                -(current_position.y - self.mouse.last_position.y),
             );
             let current_camera_eye = self.camera.eye;
             let current_camera_target = self.camera.target;
             let current_camera_direction = current_camera_target - current_camera_eye;
 
-            let current_camera_distance = (current_camera_direction.x.powf(2.0f32)
-                + current_camera_direction.z.powf(2.0f32))
-            .sqrt();
-            let scale = 5.0f32 / current_camera_distance;
-            let scaled_direction = scale * current_camera_direction;
-            let scaled_point =
-                Point3::new(scaled_direction.x, scaled_direction.y, scaled_direction.z);
-            let blunting = 0.1;
-            let current_camera_eye_2d = Point2::new(current_camera_eye.x, current_camera_eye.z);
-            let current_camera_target_2d = Point2::new(
-                scaled_point.x + current_camera_eye.x,
-                scaled_point.z + current_camera_eye.z,
+            let blunting = 1.0;
+
+            let pitch = position_diff.x * blunting;
+            let yaw = position_diff.y * blunting;
+
+            let rotation = Rotation3::from_euler_angles(0.0, pitch, yaw);
+            let new_camera_direction = rotation * current_camera_direction;
+            self.camera.target = Point3::new(
+                current_camera_eye.x + new_camera_direction.x,
+                current_camera_eye.y + new_camera_direction.y,
+                current_camera_eye.z + new_camera_direction.z,
             );
-            // rotate the eye around the target
-            let adjusted = Self::rotate_2d(
-                current_camera_eye_2d,
-                current_camera_target_2d,
-                position_diff.x as f32 / blunting,
-            );
-
-            self.camera.eye = Point3::new(adjusted.x, current_camera_eye.y, adjusted.y);
-
-            // Up down does not need rotation.
-
-            self.camera.eye.y += position_diff.y as f32 / blunting;
-
-            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
-            self.model.optimize(camera_eye);
-            self.invalidate_drawables_cache = true;
         }
         self.mouse.last_position = current_position;
     }
@@ -322,7 +301,7 @@ impl Scene {
     pub fn handle_move_forward(&mut self) {
         let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
-        let projection = Vector3::new(diff.x, 0.0, diff.z) / blunting;
+        let projection = Vector3::new(diff.x, diff.y, diff.z) / blunting;
 
         self.camera.eye += projection;
         self.camera.target += projection;
@@ -335,7 +314,7 @@ impl Scene {
     pub fn handle_move_backward(&mut self) {
         let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
-        let projection = Vector3::new(-diff.x, 0.0, -diff.z) / blunting;
+        let projection = Vector3::new(-diff.x, -diff.y, -diff.z) / blunting;
 
         self.camera.eye += projection;
         self.camera.target += projection;
@@ -374,7 +353,7 @@ impl Scene {
             .toggle_voxels(selections, !value, color, camera_eye, fluid, noise);
         self.invalidate_selection_cache();
         self.invalidate_drawables_cache = true;
-        self.invalidate_vertices_cache();
+        self.model.recalculate_occlusion();
         self.invalidate_render_cache = true;
     }
 
@@ -869,7 +848,7 @@ impl Scene {
             println!("We are done loading - invalidate all the things.");
             self.invalidate_selection_cache();
             self.invalidate_drawables_cache = true;
-            self.invalidate_vertices_cache();
+            self.model.recalculate_occlusion();
             self.invalidate_render_cache = true;
         }
     }
