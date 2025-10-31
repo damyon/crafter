@@ -24,7 +24,6 @@ pub struct Graphics {
     pub light_program: Option<Program>,
     pub shadow_depth_texture: Option<Texture2d>,
     pub shadow_texture_size: u32,
-    pub vertices_cache: HashMap<u64, Vec<Vertex>>,
 }
 
 impl Graphics {
@@ -37,7 +36,6 @@ impl Graphics {
             light_program: None,
             shadow_depth_texture: None,
             shadow_texture_size: 4096,
-            vertices_cache: HashMap::new(),
         }
     }
 
@@ -236,16 +234,8 @@ impl Graphics {
         drawable: &impl Drawable,
         light: Camera,
     ) {
-        if !self.vertices_cache.contains_key(&drawable.key()) {
-            self.vertices_cache
-                .insert(drawable.key(), drawable.vertices());
-        }
-
-        let vertices_buffer = glium::VertexBuffer::new(
-            display,
-            self.vertices_cache.get(&drawable.key()).unwrap().as_slice(),
-        )
-        .unwrap();
+        let vertices_buffer =
+            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         let eye = light.eye;
@@ -292,10 +282,6 @@ impl Graphics {
             .unwrap();
     }
 
-    pub fn invalidate_vertices_cache(&mut self) {
-        self.vertices_cache.clear();
-    }
-
     /// Render to the actual color buffer.
     pub fn draw(
         &mut self,
@@ -308,19 +294,7 @@ impl Graphics {
     ) {
         let vertices_buffer =
             glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
-        /*
-        if !self.vertices_cache.contains_key(&drawable.key()) {
-            println!("Had to put something in the cache...");
-            self.vertices_cache
-                .insert(drawable.key(), drawable.vertices());
-        }
 
-        let vertices_buffer = glium::VertexBuffer::new(
-            display,
-            self.vertices_cache.get(&drawable.key()).unwrap().as_slice(),
-        )
-        .unwrap();
-        */
         let indices = glium::index::NoIndices(drawable.primitive_type());
 
         let color = drawable.color();
