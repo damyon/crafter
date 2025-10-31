@@ -24,9 +24,6 @@ impl Octree {
     }
 
     /// Hide all nodes in the tree.
-    pub fn clear(&mut self) {
-        self.root.clear();
-    }
 
     pub fn recalculate_occlusion(&mut self) {
         let borrow = self.root.clone();

@@ -5,7 +5,6 @@ use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
 
 pub struct ButtonState {
-    pub name: String,
     pub icon_path: String,
 }
 
@@ -28,15 +27,11 @@ impl Button {
         }
     }
 
-    pub fn add_state(&mut self, name: String, icon_path: String) {
-        let state_name = name.clone();
+    pub fn add_state(&mut self, icon_path: String) {
         if self.states.len() == 0 {
             self.current_state = 0;
         }
-        self.states.push(ButtonState {
-            name: state_name,
-            icon_path,
-        });
+        self.states.push(ButtonState { icon_path });
     }
 }
 

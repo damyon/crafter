@@ -7,8 +7,6 @@ use crate::material::Material;
 use crate::model::Model;
 use crate::mouse::Mouse;
 use crate::ocnode::Ocnode;
-use crate::storage::Storage;
-use crate::stored_octree::StoredOctree;
 use crate::vertex::Vertex;
 use crate::{camera::Camera, cube::Cube};
 use glium::Frame;
@@ -156,22 +154,6 @@ impl Scene {
     }
 
     /// Helper function to rotate a point around an axis.
-    fn rotate_2d(target: Point2<f32>, pivot: Point2<f32>, angle_radians: f32) -> Point2<f32> {
-        // Precalculate the cosine
-        let angle_sin = f32::sin(angle_radians);
-        let angle_cos = f32::cos(angle_radians);
-
-        // Subtract the pivot from the target
-        let focused = target - pivot;
-        // Rotate
-        let rotated = Point2::new(
-            focused.x * angle_cos - focused.y * angle_sin,
-            focused.x * angle_sin + focused.y * angle_cos,
-        );
-
-        // Add the pivot back
-        Point2::new(rotated.x + pivot.x, rotated.y + pivot.y)
-    }
 
     /// Add a command to the queue of commands to process later.
     pub fn queue_command(&mut self, command: Command) {
@@ -344,9 +326,6 @@ impl Scene {
     }
 
     /// Save the scene to the browser.
-    pub fn save_scene(&self, path: &str) {
-        self.model.save(path);
-    }
 
     /// Move the selection shape left.
     pub fn handle_move_selection_left(&mut self) {
@@ -793,53 +772,13 @@ impl Scene {
     }
 
     /// Change the active color for this scene.
-    pub fn set_material_color(
-        &mut self,
-        red_str: &str,
-        green_str: &str,
-        blue_str: &str,
-        alpha_str: &str,
-    ) {
-        log::debug!("Set material color ({red_str}, {green_str}, {blue_str}, {alpha_str})");
-        let red = red_str.parse::<i32>().unwrap();
-        let red_f32 = red as f32 / 255.0;
-        let green = green_str.parse::<i32>().unwrap();
-        let green_f32 = green as f32 / 255.0;
-        let blue = blue_str.parse::<i32>().unwrap();
-        let blue_f32 = blue as f32 / 255.0;
-        let alpha_f32 = alpha_str.parse::<f32>().unwrap();
-
-        self.material_color = [red_f32, green_f32, blue_f32, alpha_f32];
-        self.selection_cube.color = [red_f32, green_f32, blue_f32, 0.5];
-    }
 
     /// Load a scene from the browser.
-    pub async fn load_scene(&mut self, path: &str) {
-        {
-            self.drawing = false;
-            self.loading = true;
-        }
-        println!("This is load from file");
-
-        let storage = Storage::new(path);
-        let serial: Option<StoredOctree> = storage.load_scene();
-        if serial.is_some() {
-            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
-            self.model
-                .voxels
-                .load_from_serial(serial.unwrap(), camera_eye);
-            self.drawing = true;
-            self.loading = false;
-            println!("We are done loading - invalidate all the things.");
-            self.invalidate_drawables_cache = true;
-            self.model.recalculate_occlusion();
-            self.invalidate_render_cache = true;
-        }
-    }
 
     /// Enable color noise.
     pub fn toggle_noise(&mut self) {
         self.noise = !self.noise;
+        self.invalidate_render_cache = true;
     }
 
     /// Show grid.
@@ -850,28 +789,10 @@ impl Scene {
     /// Enable fluid.
     pub fn toggle_fluid(&mut self) {
         self.fluid = !self.fluid;
-    }
-
-    pub async fn set_target_fps(&mut self, fps: u32) {
-        self.target_fps = fps;
+        self.invalidate_render_cache = true;
     }
 
     /// Load the default scene.
-    pub async fn load_first_scene(&mut self) {
-        let storage = Storage::new("");
-        let serial: Option<StoredOctree> = storage.load_first_scene();
-        if serial.is_some() {
-            let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
-            self.model
-                .voxels
-                .load_from_serial(serial.unwrap(), camera_eye);
-            self.drawing = true;
-            self.loading = false;
-        } else {
-            self.drawing = true;
-            self.loading = false;
-        }
-    }
 
     /// Init the scene.
     pub fn init(&mut self) {
@@ -1062,11 +983,8 @@ impl Scene {
                 ];
 
                 let vertices = self.selection_cube.vertices_world();
-                let material = Material::new(
-                    self.material_color,
-                    self.selection_cube.noise,
-                    self.selection_cube.fluid,
-                );
+                let material =
+                    Material::new(self.material_color, self.noise as i32, self.fluid as i32);
                 self.render_cache
                     .as_mut()
                     .expect("Render cache should be initialized")
@@ -1100,28 +1018,27 @@ impl Scene {
                     .or_insert_with(Vec::new)
                     .extend(vertices);
             }
-        } else {
-            for material in self
-                .render_cache
-                .as_ref()
-                .expect("Render cache should be initialized")
-                .keys()
-            {
-                // Process each material here
-                graphics.draw_vertices(
-                    display,
-                    frame,
-                    material,
-                    self.render_cache
-                        .as_ref()
-                        .expect("Render cache should be initialized")
-                        .get(material)
-                        .unwrap(),
-                    self.camera,
-                    self.light,
-                    self.elapsed,
-                );
-            }
+        }
+        for material in self
+            .render_cache
+            .as_ref()
+            .expect("Render cache should be initialized")
+            .keys()
+        {
+            // Process each material here
+            graphics.draw_vertices(
+                display,
+                frame,
+                material,
+                self.render_cache
+                    .as_ref()
+                    .expect("Render cache should be initialized")
+                    .get(material)
+                    .unwrap(),
+                self.camera,
+                self.light,
+                self.elapsed,
+            );
         }
 
         if self.grid_visible {

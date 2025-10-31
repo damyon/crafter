@@ -52,12 +52,4 @@ impl Storage {
     pub fn load_first_scene(self) -> Option<StoredOctree> {
         self.load_scene()
     }
-
-    /// Get a list of saved scenes.
-    pub async fn list_scenes(self) -> Vec<String> {
-        let mut names: Vec<String> = vec![];
-        names.push(String::from("Default"));
-
-        names.clone()
-    }
 }

@@ -7,7 +7,6 @@ use nalgebra::Vector3;
 /// A cube is a drawable item that can be positioned, rotated and scaled.
 #[derive(Copy, Clone)]
 pub struct Cube {
-    pub vertices_count: u16,
     pub translation: [f32; 3],
     pub rotation: [f32; 3],
     pub color: [f32; 4],
@@ -34,7 +33,6 @@ impl Cube {
     /// Create a new default cube.
     pub const fn new() -> Cube {
         Cube {
-            vertices_count: 216,
             translation: [0.0; 3],
             rotation: [0.0; 3],
             color: [0.3, 0.3, 0.1, 1.0],
@@ -59,41 +57,6 @@ impl Drawable for Cube {
     /// Init a new cube so it's ready to draw.
     fn init(&mut self) {
         self.key = rand::random();
-    }
-
-    fn material_key(&self) -> String {
-        format!(
-            "cube_{}_{}_{}_{}_{}_{}",
-            self.fluid, self.noise, self.color[0], self.color[1], self.color[2], self.color[3]
-        )
-    }
-
-    fn key(&self) -> u64 {
-        self.key
-    }
-
-    /// A cube always has the same number of vertices minus oclusion
-    fn count_vertices(&self) -> u16 {
-        let mut occluded = self.vertices_count;
-        if self.bottom_occluded {
-            occluded -= 36;
-        }
-        if self.left_occluded {
-            occluded -= 36;
-        }
-        if self.right_occluded {
-            occluded -= 36;
-        }
-        if self.front_occluded {
-            occluded -= 36;
-        }
-        if self.back_occluded {
-            occluded -= 36;
-        }
-        if self.top_occluded {
-            occluded -= 36;
-        }
-        occluded
     }
 
     fn primitive_type(&self) -> glium::index::PrimitiveType {

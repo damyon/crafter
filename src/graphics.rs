@@ -14,7 +14,6 @@ use glium::texture::UncompressedFloatFormat;
 use glium::uniform;
 use glutin::surface::WindowSurface;
 use nalgebra::*;
-use std::collections::HashMap;
 
 /// All the things we need to know to render to the screen.
 pub struct Graphics {

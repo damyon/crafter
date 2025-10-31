@@ -23,8 +23,6 @@ pub enum CommandType {
     UpdateCurrentMaterialGreen,
     UpdateCurrentMaterialBlue,
     UpdateCurrentMaterialAlpha,
-    UpdateCurrentMaterialNoise,
-    UpdateCurrentMaterialFluid,
 }
 
 /// A command that can be queued with the data that came with it.

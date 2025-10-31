@@ -4,10 +4,7 @@ use glium::index::PrimitiveType;
 /// Drawable objects can provide whats need to render themselves in WebGL.
 pub trait Drawable {
     // Implement a key so the vertices can be cached.
-    fn material_key(&self) -> String;
-    fn key(&self) -> u64;
     fn init(&mut self);
-    fn count_vertices(&self) -> u16;
     fn translation(&self) -> &[f32; 3];
     fn rotation(&self) -> &[f32; 3];
     fn translate(&mut self, amount: [f32; 3]);

@@ -113,21 +113,7 @@ impl Drawable for Grid {
         self.key = rand::random();
     }
 
-    fn material_key(&self) -> String {
-        format!(
-            "grid_{}_{}_{}_{}_{}_{}",
-            self.fluid, self.noise, self.color[0], self.color[1], self.color[2], self.color[3]
-        )
-    }
-
-    fn key(&self) -> u64 {
-        self.key
-    }
-
     /// We calculated the number of vertices after we created it.
-    fn count_vertices(&self) -> u16 {
-        self.vertices_count
-    }
 
     /// Where is the grid.
     fn translation(&self) -> &[f32; 3] {
