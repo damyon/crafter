@@ -12,7 +12,7 @@ use crate::{camera::Camera, cube::Cube};
 use glium::Frame;
 use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
-use nalgebra::{Point2, Point3, Rotation3, Vector3};
+use nalgebra::*;
 use rfd::FileDialog;
 use std::cmp::{max, min};
 use std::collections::HashMap;
@@ -181,13 +181,13 @@ impl Scene {
         if self.mouse.is_pressed && (y > -0.6) {
             let position_diff = Point2::new(
                 current_position.x - self.mouse.last_position.x,
-                -(current_position.y - self.mouse.last_position.y),
+                current_position.y - self.mouse.last_position.y,
             );
             let current_camera_eye = self.camera.eye;
             let current_camera_target = self.camera.target;
             let current_camera_direction = current_camera_target - current_camera_eye;
 
-            let blunting = 1.0;
+            let blunting = 0.8;
 
             let pitch = position_diff.x * blunting;
             let yaw = position_diff.y * blunting;
@@ -445,9 +445,56 @@ impl Scene {
         translated_commands
     }
 
+    /// Get the view from the camera.
+    pub fn build_camera_projection(&self) -> Matrix4<f32> {
+        Perspective3::new(
+            1.0,
+            std::f32::consts::PI / 4.0, // 45 degrees
+            1.0,
+            200.0,
+        )
+        .into_inner()
+    }
+
+    // Convert from 2d window coordinates to 3d world coordinates
+    pub fn unproject(&self, x: f32, y: f32) -> Option<(Point3<f32>, Point3<f32>)> {
+        // We need to calculate the model matrix for the drawable object
+        let eye = self.camera.eye;
+        let target = self.camera.target;
+        let view = Isometry3::look_at_rh(&eye, &target, &Vector3::y());
+
+        let model: Isometry3<f32> = Isometry3::identity();
+        let projection_matrix = self.build_camera_projection();
+
+        let model_view = (view * model).to_homogeneous();
+
+        let transform_matrix = (projection_matrix * (model_view)).try_inverse().unwrap();
+
+        let near = transform_matrix.transform_point(&Point3::new(x, y, 0.0));
+        let far = transform_matrix.transform_point(&Point3::new(x, y, 1.0));
+
+        Some((near, far))
+    }
+
     pub fn handle_mouse_click(&mut self, command: &Command) {
-        let current_position = Point2::new(command.data1 as i32, command.data2 as i32);
+        let current_position =
+            Point2::new(f32::from_bits(command.data1), f32::from_bits(command.data2));
         println!("Mouse clicked at position: {:?}", current_position);
+        let maybe_near_far = self.unproject(current_position.x, current_position.y);
+        if let Some((near, far)) = maybe_near_far {
+            println!("Near: {:?}, Far: {:?}", near, far);
+
+            self.model.paint_first_collision(
+                near,
+                far,
+                self.material_color,
+                self.noise as i32,
+                self.fluid as i32,
+            );
+            self.invalidate_drawables_cache = true;
+            self.model.recalculate_occlusion();
+            self.invalidate_render_cache = true;
+        }
     }
 
     pub fn handle_pick_material(&mut self, command: &Command) -> Vec<Command> {

@@ -1,6 +1,7 @@
 use crate::cube::Cube;
 use crate::octree::Octree;
 use crate::storage::Storage;
+use nalgebra::Point3;
 
 /// A model contains an Octree of voxels.
 #[derive(Clone)]
@@ -19,6 +20,18 @@ impl Model {
     /// Get the list of drawables from the OcTree
     pub fn drawables(&mut self) -> Vec<Cube> {
         self.voxels.drawables()
+    }
+
+    pub fn paint_first_collision(
+        &mut self,
+        near: Point3<f32>,
+        far: Point3<f32>,
+        material_color: [f32; 4],
+        noise: i32,
+        fluid: i32,
+    ) {
+        self.voxels
+            .paint_first_collision(near, far, material_color, noise, fluid);
     }
 
     /// Call optimize on the nested OcNodes

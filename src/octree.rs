@@ -1,6 +1,7 @@
 use crate::cube::Cube;
 use crate::ocnode::Ocnode;
 use crate::stored_octree::StoredOctree;
+use nalgebra::Point3;
 
 /// An octree has a name and a tree of nodes.
 #[derive(Clone)]
@@ -29,6 +30,22 @@ impl Octree {
         let borrow = self.root.clone();
         println!("Recalculate occlusion");
         self.root.recalculate_occlusion(&borrow);
+    }
+
+    pub fn paint_first_collision(
+        &mut self,
+        near: Point3<f32>,
+        far: Point3<f32>,
+        material_color: [f32; 4],
+        noise: i32,
+        fluid: i32,
+    ) {
+        let collision_opt = self.root.find_first_collision(near, far);
+
+        if let Some(collision) = collision_opt {
+            self.root
+                .paint_connected_nodes(collision, material_color, noise, fluid);
+        }
     }
 
     /// Optimize walks the tree and based on the camera position

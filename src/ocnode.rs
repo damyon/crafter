@@ -1,4 +1,5 @@
 use crate::{cube::Cube, drawable::Drawable};
+use nalgebra::Point3;
 use serde::{Deserialize, Serialize};
 
 /// Helper function to create an empty list.
@@ -67,6 +68,248 @@ impl Ocnode {
             bottom_occluded_calculated: false,
             left_occluded_calculated: false,
             right_occluded_calculated: false,
+        }
+    }
+
+    pub fn intersects_line(&self, near: Point3<f32>, far: Point3<f32>) -> bool {
+        // 6 planes form the cube.
+        // foreach plane - find the intersection point
+        // if intersection point is within the cube, return true
+        //
+        let min_vertex: Point3<f32> = Point3::new(
+            self.x_index as f32 * self.resolution(self.sub_division_level) as f32,
+            self.y_index as f32 * self.resolution(self.sub_division_level) as f32,
+            self.z_index as f32 * self.resolution(self.sub_division_level) as f32,
+        );
+        let max_vertex = Point3::new(
+            (self.x_index + 1) as f32 * self.resolution(self.sub_division_level) as f32,
+            (self.y_index + 1) as f32 * self.resolution(self.sub_division_level) as f32,
+            (self.z_index + 1) as f32 * self.resolution(self.sub_division_level) as f32,
+        );
+
+        // line equation = near + t * (far - near)
+
+        // front
+        let front_plane_z = self.z_index as f32;
+        // front_plane_z = near.z + t * (far.z - near.z)
+        // front_plane_z - near.z = t * (far.z - near.z)
+        // (front_plane_z - near.z) / (far.z - near.z)=t
+        let t = (front_plane_z - near.z) / (far.z - near.z);
+        let intersection = near + t * (far - near);
+        if (intersection.x >= min_vertex.x && intersection.x <= max_vertex.x)
+            && (intersection.y >= min_vertex.y && intersection.y <= max_vertex.y)
+            && (intersection.z >= min_vertex.z && intersection.z <= max_vertex.z)
+        {
+            return true;
+        }
+        // left
+        let left_plane_x = self.x_index as f32;
+        let t = (left_plane_x - near.x) / (far.x - near.x);
+        let intersection = near + t * (far - near);
+        if (intersection.x >= min_vertex.x && intersection.x <= max_vertex.x)
+            && (intersection.y >= min_vertex.y && intersection.y <= max_vertex.y)
+            && (intersection.z >= min_vertex.z && intersection.z <= max_vertex.z)
+        {
+            return true;
+        }
+        // right
+        let right_plane_x = (self.x_index + 1) as f32;
+        let t = (right_plane_x - near.x) / (far.x - near.x);
+        let intersection = near + t * (far - near);
+        if (intersection.x >= min_vertex.x && intersection.x <= max_vertex.x)
+            && (intersection.y >= min_vertex.y && intersection.y <= max_vertex.y)
+            && (intersection.z >= min_vertex.z && intersection.z <= max_vertex.z)
+        {
+            return true;
+        }
+        // back
+        let back_plane_y = self.y_index as f32;
+        let t = (back_plane_y - near.y) / (far.y - near.y);
+        let intersection = near + t * (far - near);
+        if (intersection.x >= min_vertex.x && intersection.x <= max_vertex.x)
+            && (intersection.y >= min_vertex.y && intersection.y <= max_vertex.y)
+            && (intersection.z >= min_vertex.z && intersection.z <= max_vertex.z)
+        {
+            return true;
+        }
+        // top
+        let top_plane_y = (self.y_index + 1) as f32;
+        let t = (top_plane_y - near.y) / (far.y - near.y);
+        let intersection = near + t * (far - near);
+        if (intersection.x >= min_vertex.x && intersection.x <= max_vertex.x)
+            && (intersection.y >= min_vertex.y && intersection.y <= max_vertex.y)
+            && (intersection.z >= min_vertex.z && intersection.z <= max_vertex.z)
+        {
+            return true;
+        }
+        // bottom
+        let bottom_plane_y = self.y_index as f32;
+        let t = (bottom_plane_y - near.y) / (far.y - near.y);
+        let intersection = near + t * (far - near);
+        if (intersection.x >= min_vertex.x && intersection.x <= max_vertex.x)
+            && (intersection.y >= min_vertex.y && intersection.y <= max_vertex.y)
+            && (intersection.z >= min_vertex.z && intersection.z <= max_vertex.z)
+        {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn distance_to(&self, point: Point3<f32>) -> f32 {
+        let dx = point.x - self.x_index as f32;
+        let dy = point.y - self.y_index as f32;
+        let dz = point.z - self.z_index as f32;
+        dx * dx + dy * dy + dz * dz
+    }
+
+    pub fn paint_connected_nodes(
+        &mut self,
+        collision: (i32, i32, i32, u32),
+        material_color: [f32; 4],
+        noise: i32,
+        fluid: i32,
+    ) {
+        let mut completed = Vec::new();
+        self.paint_connected_nodes_with_completion(
+            collision,
+            material_color,
+            noise,
+            fluid,
+            completed.as_mut(),
+        );
+    }
+
+    pub fn paint_connected_nodes_with_completion(
+        &mut self,
+        collision: (i32, i32, i32, u32),
+        material_color: [f32; 4],
+        noise: i32,
+        fluid: i32,
+        completed: &mut Vec<(i32, i32, i32, u32)>,
+    ) {
+        let (x, y, z, level) = collision;
+        let candidate_opt = self.find_mut_by_index(x, y, z, level);
+        let left_occluded: bool;
+        let right_occluded: bool;
+        let top_occluded: bool;
+        let bottom_occluded: bool;
+        let front_occluded: bool;
+        let back_occluded: bool;
+
+        println!("Completed length: {}", completed.len());
+        if let Some(candidate) = candidate_opt {
+            println!("Push completion vector");
+            completed.push((x, y, z, level));
+            candidate.color = material_color;
+            candidate.noise = noise;
+            candidate.fluid = fluid;
+            left_occluded = candidate.left_occluded_calculated;
+            right_occluded = candidate.right_occluded_calculated;
+            top_occluded = candidate.top_occluded_calculated;
+            bottom_occluded = candidate.bottom_occluded_calculated;
+            front_occluded = candidate.front_occluded_calculated;
+            back_occluded = candidate.back_occluded_calculated;
+        } else {
+            println!("Could not find candidate");
+            return;
+        }
+
+        if left_occluded {
+            if !completed.contains(&(x - 1, y, z, level)) {
+                self.paint_connected_nodes_with_completion(
+                    (x - 1, y, z, level),
+                    material_color,
+                    noise,
+                    fluid,
+                    completed,
+                );
+            }
+        }
+        if right_occluded {
+            if !completed.contains(&(x + 1, y, z, level)) {
+                self.paint_connected_nodes_with_completion(
+                    (x + 1, y, z, level),
+                    material_color,
+                    noise,
+                    fluid,
+                    completed,
+                );
+            }
+        }
+        if top_occluded {
+            if !completed.contains(&(x, y + 1, z, level)) {
+                self.paint_connected_nodes_with_completion(
+                    (x, y + 1, z, level),
+                    material_color,
+                    noise,
+                    fluid,
+                    completed,
+                );
+            }
+        }
+        if bottom_occluded {
+            if !completed.contains(&(x, y - 1, z, level)) {
+                self.paint_connected_nodes_with_completion(
+                    (x, y - 1, z, level),
+                    material_color,
+                    noise,
+                    fluid,
+                    completed,
+                );
+            }
+        }
+        if front_occluded {
+            if !completed.contains(&(x, y, z - 1, level)) {
+                println!("Move forward");
+                self.paint_connected_nodes_with_completion(
+                    (x, y, z - 1, level),
+                    material_color,
+                    noise,
+                    fluid,
+                    completed,
+                );
+            }
+        }
+        if back_occluded {
+            if !completed.contains(&(x, y, z + 1, level)) {
+                println!("Move backwards");
+                self.paint_connected_nodes_with_completion(
+                    (x, y, z + 1, level),
+                    material_color,
+                    noise,
+                    fluid,
+                    completed,
+                );
+            }
+        }
+    }
+
+    pub fn find_first_collision(
+        &self,
+        near: Point3<f32>,
+        far: Point3<f32>,
+    ) -> Option<(i32, i32, i32, u32)> {
+        let active = self.active_nodes();
+        let mut hits: Vec<&Ocnode> = active
+            .iter()
+            .filter(|node| node.intersects_line(near, far))
+            .collect();
+
+        hits.sort_unstable_by(|a, b| {
+            a.distance_to(near)
+                .partial_cmp(&b.distance_to(near))
+                .unwrap()
+        });
+        if hits.len() > 0 {
+            Some((
+                hits[0].x_index,
+                hits[0].y_index,
+                hits[0].z_index,
+                hits[0].sub_division_level,
+            ))
+        } else {
+            None
         }
     }
 
@@ -345,9 +588,10 @@ impl Ocnode {
 
     /// Determine the distance between this cube and the camera.
     fn _depth(&self, camera: [f32; 3]) -> f32 {
-        ((self.x_index as f32 - camera[0]).powi(2)
-            + (self.y_index as f32 - camera[1]).powi(2)
-            + (self.z_index as f32 - camera[2]).powi(2))
+        let half = self.resolution(self.sub_division_level) as f32 / 2.0;
+        ((self.x_index as f32 + half - camera[0]).powi(2)
+            + (self.y_index as f32 + half - camera[1]).powi(2)
+            + (self.z_index as f32 + half - camera[2]).powi(2))
         .sqrt()
     }
 
