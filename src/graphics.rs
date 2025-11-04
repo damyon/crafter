@@ -339,7 +339,7 @@ impl Graphics {
         };
 
         let params = glium::DrawParameters {
-            line_width: Some(22.0),
+            line_width: Some(6.0),
             blend: glium::Blend::alpha_blending(),
             backface_culling: glium::BackfaceCullingMode::CullClockwise,
             depth: glium::Depth {

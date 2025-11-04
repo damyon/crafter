@@ -479,21 +479,23 @@ impl Scene {
     pub fn handle_mouse_click(&mut self, command: &Command) {
         let current_position =
             Point2::new(f32::from_bits(command.data1), f32::from_bits(command.data2));
-        println!("Mouse clicked at position: {:?}", current_position);
-        let maybe_near_far = self.unproject(current_position.x, current_position.y);
-        if let Some((near, far)) = maybe_near_far {
-            println!("Near: {:?}, Far: {:?}", near, far);
+        if (current_position.y > -0.6) {
+            println!("Mouse clicked at position: {:?}", current_position);
+            let maybe_near_far = self.unproject(current_position.x, current_position.y);
+            if let Some((near, far)) = maybe_near_far {
+                println!("Near: {:?}, Far: {:?}", near, far);
 
-            self.model.paint_first_collision(
-                near,
-                far,
-                self.material_color,
-                self.noise as i32,
-                self.fluid as i32,
-            );
-            self.invalidate_drawables_cache = true;
-            self.model.recalculate_occlusion();
-            self.invalidate_render_cache = true;
+                self.model.paint_first_collision(
+                    near,
+                    far,
+                    self.material_color,
+                    self.noise as i32,
+                    self.fluid as i32,
+                );
+                self.invalidate_drawables_cache = true;
+                self.model.recalculate_occlusion();
+                self.invalidate_render_cache = true;
+            }
         }
     }
 
