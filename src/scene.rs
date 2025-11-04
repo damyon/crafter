@@ -3,6 +3,8 @@ use crate::command_queue::CommandQueue;
 use crate::drawable::Drawable;
 use crate::graphics::Graphics;
 use crate::grid::Grid;
+use crate::key_bindings::KeyBindings;
+use crate::key_bindings::Action;
 use crate::material::Material;
 use crate::model::Model;
 use crate::mouse::Mouse;
@@ -686,12 +688,36 @@ impl Scene {
 
     /// Handle a key press.
     pub fn handle_key_down(&mut self, command: &Command) {
-        let mut key = command.data1;
+        let key = command.data1;
 
         println!("Key pressed: {}", key);
-        if std::env::consts::OS == "macos" {
-            key += 8;
+
+        let bindings: KeyBindings = KeyBindings::new();
+
+        match bindings.action(key) {
+            Some(Action::Forward) => self.handle_move_forward(),
+            Some(Action::OpenScene) => self.select_file_to_open(),
+            Some(Action::SaveScene) => self.select_file_to_save(),
+            Some(Action::MoveUp) => self.handle_move_up(),
+            Some(Action::MoveDown) => self.handle_move_down(),
+            Some(Action::MoveLeft) => self.handle_move_left(),
+            Some(Action::MoveRight) => self.handle_move_right(),
+            Some(Action::MoveForward) => self.handle_move_forward(),
+            Some(Action::MoveBackward) => self.handle_move_backward(),
+            Some(Action::ToggleVoxel) => self.handle_toggle_voxel(),
+            Some(Action::MoveSelectionLeft) => self.handle_move_selection_left(),
+            Some(Action::MoveSelectionRight) => self.handle_move_selection_right(),
+            Some(Action::MoveSelectionUp) => self.handle_move_selection_up(),
+            Some(Action::MoveSelectionDown) => self.handle_move_selection_down(),
+            Some(Action::MoveSelectionForward) => self.handle_move_selection_forward(),
+            Some(Action::MoveSelectionBackward) => self.handle_move_selection_backward(),
+            Some(Action::ToggleSelectionShape) => self.handle_toggle_selection_shape(),
+            Some(Action::ToggleFluid) => self.toggle_fluid(),
+            Some(Action::ToggleShowGrid) => self.toggle_show_grid(),
+            Some(Action::ToggleNoise) => self.toggle_noise(),
+            _ => ()
         }
+        /*
         match key {
             1 => self.select_file_to_open(),
 
@@ -701,13 +727,13 @@ impl Scene {
             // E
             18 => self.handle_move_down(),
             // A or LEFT
-            30 | 105 => self.handle_move_left(),
+            30 | 105 | 123 => self.handle_move_left(),
             // D or RIGHT
-            32 | 106 => self.handle_move_right(),
+            32 | 106 | 124 => self.handle_move_right(),
             // W or UP
-            17 | 103 => self.handle_move_forward(),
+            17 | 103  | 126=> self.handle_move_forward(),
             // S or DOWN
-            31 | 108 => self.handle_move_backward(),
+            31 | 108 | 125 => self.handle_move_backward(),
             // SPACEBAR
             57 => self.handle_toggle_voxel(),
             // 4 or J
@@ -741,6 +767,7 @@ impl Scene {
 
             _ => log::info!("Unhandled key press: {}", key),
         }
+        */
     }
 
     pub fn update_current_material_red(&mut self, command: &Command) -> Vec<Command> {

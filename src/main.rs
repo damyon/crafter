@@ -26,11 +26,13 @@ mod cube;
 mod drawable;
 mod grid;
 mod image_vertex;
+mod key_bindings;
 mod material;
 mod model;
 mod mouse;
 mod ocnode;
 mod octree;
+mod operating_system;
 mod palette;
 mod scene;
 mod slider;
@@ -51,6 +53,24 @@ fn main() {
     // This also needs to happen on the main thread to make the program portable.
     let event_loop = EventLoop::builder().build().expect("event loop building");
 
+    /*
+    *
+    * let window_builder = glutin::WindowBuilder::new()
+            // 1. Configure the window itself (size, title, visibility)
+            .with_dimensions(glutin::dpi::LogicalSize::new(800.0, 600.0))
+            .with_title("My Glium Window");
+
+        let context_builder = ContextBuilder::new()
+            // 2. Configure the OpenGL context (version, vsync)
+            .with_vsync(true);
+
+        // 3. Chain the window builder using set_window_builder
+        let display = window_builder
+            .with_context(context_builder)
+            .set_window_builder(window_builder) // Pass the configured glutin::WindowBuilder
+            .build_glium() // This finalizes the creation
+            .unwrap();
+    */
     let (window, display) = SimpleWindowBuilder::new()
         .with_title("Crafter")
         .with_inner_size(2048, 1280)
@@ -218,7 +238,16 @@ fn main() {
                             ui.queue_command(mouse_wheel);
                             //scene.process_commands();
                         }
-                        _ => {}
+                        MouseScrollDelta::PixelDelta(position) => {
+                            let mouse_wheel = Command {
+                                command_type: CommandType::MouseScroll,
+                                data1: position.x as u32,
+                                data2: position.y as u32,
+                            };
+                            println!("Mouse pad scrolled: x={}, y={}", position.x, position.y);
+                            scene.queue_command(mouse_wheel);
+                            ui.queue_command(mouse_wheel);
+                        }
                     },
                     _ => (),
                 },

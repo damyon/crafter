@@ -1,18 +1,10 @@
 use crate::stored_octree::StoredOctree;
-use serde::{Deserialize, Serialize};
 use serde_json;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
 
-/// Save to a string.
-#[derive(Serialize, Deserialize)]
-struct UserRef {
-    id: u32,
-    name: String,
-}
-
-/// We don't use this struct.
+/// Handle read/write to file
 pub struct Storage {
     path: String,
 }

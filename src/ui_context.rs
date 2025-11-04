@@ -5,6 +5,7 @@ use crate::palette::Palette;
 use crate::slider::Slider;
 use crate::swatch::Swatch;
 use crate::widget::Widget;
+use crate::key_bindings::VirtualKeyCode;
 
 use glium::Frame;
 use glium::backend::glutin::Display;
@@ -42,17 +43,17 @@ impl UiContext {
     }
 
     pub fn create_default_ui(&mut self) {
-        let mut button = Button::new((-0.96, -0.95), (0.1, 0.1), 1);
+        let mut button = Button::new((-0.96, -0.95), (0.1, 0.1), VirtualKeyCode::OpenScene as u32);
         button.add_state(String::from("resources/file-open.png"));
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.85, -0.95), (0.1, 0.1), 2);
+        let mut button = Button::new((-0.85, -0.95), (0.1, 0.1), VirtualKeyCode::SaveScene as u32);
         button.add_state(String::from("resources/file-save.png"));
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.74, -0.95), (0.1, 0.1), 34);
+        let mut button = Button::new((-0.74, -0.95), (0.1, 0.1), VirtualKeyCode::ToggleShowGrid as u32);
         button.add_state(String::from("resources/show-grid.png"));
         button.add_state(String::from("resources/hide-grid.png"));
 

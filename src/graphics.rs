@@ -77,7 +77,7 @@ impl Graphics {
 
     /// Compile the light shaders.
     pub fn setup_light_shaders(&mut self, display: &Display<WindowSurface>) -> Program {
-        let vertex_shader_source = "#version 460
+        let vertex_shader_source = "#version 410
                 in vec3 position;
 
                 uniform mat4 uPMatrix;
@@ -88,7 +88,7 @@ impl Graphics {
                     gl_Position = uPMatrix * uMVMatrix * a_position;
                 }
             ";
-        let fragment_shader_source = "#version 460
+        let fragment_shader_source = "#version 410
                 precision mediump float;
                 out vec4 fragColor;
 
@@ -118,8 +118,7 @@ impl Graphics {
 
     /// Compile the camera shaders.
     pub fn setup_camera_shaders(&mut self, display: &Display<WindowSurface>) -> Program {
-        let vertex_shader_source = "#version 460
-
+        let vertex_shader_source = "#version 410
                 in vec3 position;
                 in vec3 normal;
                 uniform mat4 uPMatrix;
@@ -144,8 +143,7 @@ impl Graphics {
                 }
                 ";
 
-        let fragment_shader_source = "#version 460
-
+        let fragment_shader_source = "#version 410
                 precision mediump float;
                 uniform vec4 u_color;
                 uniform bool u_fluid;
@@ -375,7 +373,7 @@ impl Graphics {
         };
 
         let params = glium::DrawParameters {
-            line_width: Some(3.0),
+            line_width: Some(20.0),
             blend: glium::Blend::alpha_blending(),
             backface_culling: glium::BackfaceCullingMode::CullClockwise,
             depth: glium::Depth {
