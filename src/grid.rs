@@ -7,11 +7,11 @@ use nalgebra::Vector3;
 /// A Grid is a drawable thing too.
 #[derive(Copy, Clone)]
 pub struct Grid {
-    pub scale: u16,
-    pub square_count: u16,
-    pub vertices_count: u16,
-    pub vertices: [Vertex; 516],
-    pub max_scale: u16,
+    pub scale: u32,
+    pub square_count: u32,
+    pub vertices_count: u32,
+    pub vertices: [Vertex; 3084],
+    pub max_scale: u32,
     pub translation: [f32; 3],
     pub rotation: [f32; 3],
     pub color: [f32; 4],
@@ -26,14 +26,14 @@ impl Grid {
     /// Create a new default grid
     pub const fn new() -> Grid {
         Grid {
-            scale: 128,
-            square_count: 16384,  // self.scale * self.scale
-            vertices_count: 1548, // 2 * (6 * (self.scale+1))
+            scale: 256,
+            square_count: 65536,  // self.scale * self.scale
+            vertices_count: 3084, // 2 * (6 * (self.scale+1))
             vertices: [Vertex {
                 position: [0.0, 0.0, 0.0],
                 normal: [0.0, 0.0, 0.0],
-            }; 516],
-            max_scale: 200,
+            }; 3084],
+            max_scale: 300,
             translation: [0.0; 3],
             rotation: [0.0; 3],
             color: [0.5, 0.5, 0.5, 0.1],

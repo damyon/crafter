@@ -8,7 +8,7 @@ fn empty_list() -> [Option<Box<Ocnode>>; 8] {
     [None, None, None, None, None, None, None, None]
 }
 
-pub const LEVELS: u32 = 8;
+pub const LEVELS: u32 = 9;
 
 /// A struct representing a single cube for the octree.
 /// Cubes contain children which are smaller cubes.

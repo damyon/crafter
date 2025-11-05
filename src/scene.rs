@@ -537,7 +537,7 @@ impl Scene {
     /// Handle the mouse scroll.
     pub fn handle_mouse_scroll(&mut self, command: &Command) {
         let direction: u32 = command.data2;
-        let max_selection_radius: u32 = 32;
+        let max_selection_radius: u32 = 128;
         let min_selection_radius: u32 = 1;
         if direction > 0 {
             self.selection_radius = min(self.selection_radius + 1, max_selection_radius);
