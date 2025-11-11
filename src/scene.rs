@@ -164,7 +164,13 @@ impl Scene {
 
     /// Process a mouse down event.
     pub fn handle_mouse_down(&mut self) {
-        self.mouse.is_pressed = true;
+        if self.mouse.last_position[0] > -0.2
+            && self.mouse.last_position[0] < 0.2
+            && self.mouse.last_position[1] > -0.2
+            && self.mouse.last_position[1] < 0.2
+        {
+            self.mouse.is_pressed = true;
+        }
     }
 
     /// Process a mouse up event.
