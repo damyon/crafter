@@ -81,8 +81,16 @@ pub struct Scene {
     invalidate_drawables_cache: bool,
     /// Start time of the scene.
     start_time: Option<Instant>,
+    /// Hashmap to store rendered vertices for each material.
     render_cache: Option<HashMap<Material, Vec<Vertex>>>,
+    /// Invalidate the render cache.
     invalidate_render_cache: bool,
+    /// Invalidate a single material from the render cache.
+    invalidate_render_material: Option<Material>,
+    /// Invalidate the selection vertices.
+    invalidate_selection_render_cache: bool,
+    /// Vec of selection vertices.
+    selection_vertices_cache: Option<Vec<Vertex>>,
 }
 
 impl Scene {
@@ -114,6 +122,9 @@ impl Scene {
             start_time: None,
             render_cache: None,
             invalidate_render_cache: false,
+            invalidate_render_material: None,
+            invalidate_selection_render_cache: false,
+            selection_vertices_cache: None,
         }
     }
 
@@ -328,7 +339,8 @@ impl Scene {
             .toggle_voxels(selections, !value, color, camera_eye, fluid, noise);
         self.invalidate_drawables_cache = true;
         self.model.recalculate_occlusion();
-        self.invalidate_render_cache = true;
+        let material = Material::new(color, noise, fluid);
+        self.invalidate_render_material = Some(material);
     }
 
     /// Save the scene to the browser.
@@ -337,42 +349,42 @@ impl Scene {
     pub fn handle_move_selection_left(&mut self) {
         self.selection_cube.translate([-1.0, 0.0, 0.0]);
         self.selection_position[0] -= 1;
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     /// Move the selection shape right.
     pub fn handle_move_selection_right(&mut self) {
         self.selection_cube.translate([1.0, 0.0, 0.0]);
         self.selection_position[0] += 1;
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     /// Move the selection shape forward.
     pub fn handle_move_selection_forward(&mut self) {
         self.selection_cube.translate([0.0, 0.0, 1.0]);
         self.selection_position[2] += 1;
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     /// Move the selection shape backward.
     pub fn handle_move_selection_backward(&mut self) {
         self.selection_cube.translate([0.0, 0.0, -1.0]);
         self.selection_position[2] -= 1;
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     /// Move the selection shape up.
     pub fn handle_move_selection_up(&mut self) {
         self.selection_cube.translate([0.0, 1.0, 0.0]);
         self.selection_position[1] += 1;
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     /// Move the selection shape down.
     pub fn handle_move_selection_down(&mut self) {
         self.selection_cube.translate([0.0, -1.0, 0.0]);
         self.selection_position[1] -= 1;
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     /// Hide or show the selection shape.
@@ -394,7 +406,7 @@ impl Scene {
         } else {
             SelectionShape::Sphere
         };
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
     }
 
     pub fn handle_slider_moved(&mut self, command: &Command) -> Vec<Command> {
@@ -447,7 +459,7 @@ impl Scene {
 
             _ => {}
         }
-        self.invalidate_render_cache = true;
+        self.invalidate_selection_render_cache = true;
         translated_commands
     }
 
@@ -485,7 +497,7 @@ impl Scene {
     pub fn handle_mouse_click(&mut self, command: &Command) {
         let current_position =
             Point2::new(f32::from_bits(command.data1), f32::from_bits(command.data2));
-        if (current_position.y > -0.6) {
+        if current_position.y > -0.6 {
             println!("Mouse clicked at position: {:?}", current_position);
             let maybe_near_far = self.unproject(current_position.x, current_position.y);
             if let Some((near, far)) = maybe_near_far {
@@ -852,6 +864,7 @@ impl Scene {
     /// Init the scene.
     pub fn init(&mut self) {
         self.render_cache = Some(HashMap::new());
+        self.selection_vertices_cache = Some(Vec::new());
         self.light.eye = Point3::new(60.0, 60.0, 60.0);
         self.light.target = Point3::new(0.0, 0.0, 0.0);
         self.selection_cube.scale = 0.8f32;
@@ -1010,12 +1023,18 @@ impl Scene {
 
         graphics.prepare_camera_frame(frame);
 
-        if self.invalidate_render_cache {
-            self.render_cache
-                .as_mut()
-                .expect("Render cache should be initialized")
-                .clear();
-            self.invalidate_render_cache = false;
+        if self.invalidate_render_cache
+            || self.invalidate_selection_render_cache
+            || self.invalidate_render_material.is_some()
+        {
+            if self.invalidate_render_cache {
+                self.render_cache
+                    .as_mut()
+                    .expect("Render cache should be initialized")
+                    .clear();
+                self.invalidate_render_cache = false;
+                self.invalidate_selection_render_cache = true;
+            }
 
             /*graphics.prepare_shadow_frame();
 
@@ -1026,26 +1045,29 @@ impl Scene {
             graphics.finish_shadow_frame();
             */
 
-            for selection in &Self::selection_voxels(
-                &self.selection_position,
-                self.selection_radius as i32,
-                self.selection_shape,
-            ) {
-                self.selection_cube.translation = [
-                    selection[0] as f32 + 0.1,
-                    selection[1] as f32 + 0.1,
-                    selection[2] as f32 + 0.1,
-                ];
+            if self.invalidate_selection_render_cache {
+                self.invalidate_selection_render_cache = false;
+                self.selection_vertices_cache.as_mut().unwrap().clear();
 
-                let vertices = self.selection_cube.vertices_world();
-                let material =
-                    Material::new(self.material_color, self.noise as i32, self.fluid as i32);
-                self.render_cache
-                    .as_mut()
-                    .expect("Render cache should be initialized")
-                    .entry(material)
-                    .or_insert_with(Vec::new)
-                    .extend(vertices);
+                for selection in &Self::selection_voxels(
+                    &self.selection_position,
+                    self.selection_radius as i32,
+                    self.selection_shape,
+                ) {
+                    self.selection_cube.translation = [
+                        selection[0] as f32 + 0.1,
+                        selection[1] as f32 + 0.1,
+                        selection[2] as f32 + 0.1,
+                    ];
+
+                    let vertices = self.selection_cube.vertices_world();
+
+                    println!("Rebuilding selection render cache");
+                    self.selection_vertices_cache
+                        .as_mut()
+                        .unwrap()
+                        .extend(vertices);
+                }
             }
 
             if self.invalidate_drawables_cache {
@@ -1066,13 +1088,20 @@ impl Scene {
             for voxel in self.drawables_cache.iter() {
                 let vertices = voxel.vertices_world();
                 let material = Material::new(voxel.color, voxel.noise, voxel.fluid);
-                self.render_cache
-                    .as_mut()
-                    .expect("Render cache should be initialized")
-                    .entry(material)
-                    .or_insert_with(Vec::new)
-                    .extend(vertices);
+                if self.invalidate_render_material.is_none()
+                    || self.invalidate_render_material.as_ref().unwrap() == &material
+                {
+                    println!("Rebuilding material render cache");
+                    self.render_cache
+                        .as_mut()
+                        .expect("Render cache should be initialized")
+                        .entry(material)
+                        .or_insert_with(Vec::new)
+                        .extend(vertices);
+                }
             }
+
+            self.invalidate_render_material = None;
         }
         for material in self
             .render_cache
@@ -1095,6 +1124,17 @@ impl Scene {
                 self.elapsed,
             );
         }
+        let material = Material::new(self.material_color, self.noise as i32, self.fluid as i32);
+
+        graphics.draw_vertices(
+            display,
+            frame,
+            &material,
+            self.selection_vertices_cache.as_mut().expect("Some"),
+            self.camera,
+            self.light,
+            self.elapsed,
+        );
 
         if self.grid_visible {
             graphics.draw(

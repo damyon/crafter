@@ -3,6 +3,7 @@ use crate::command::CommandType;
 use crate::graphics::Graphics;
 use crate::scene::Scene;
 use crate::ui_context::UiContext;
+use env_logger;
 use glium::backend::glutin::SimpleWindowBuilder;
 use glium::winit::event::Event::{AboutToWait, WindowEvent};
 use glium::winit::event::WindowEvent::{
@@ -13,6 +14,7 @@ use glium::winit::event_loop::EventLoop;
 use glium::winit::platform::scancode::PhysicalKeyExtScancode;
 use std::time::Duration;
 use std::time::Instant;
+
 mod graphics;
 
 mod button;
@@ -40,6 +42,8 @@ mod vertex;
 mod widget;
 
 fn main() {
+    env_logger::init();
+
     let mut scene = Scene::new();
 
     scene.init();

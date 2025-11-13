@@ -28,7 +28,7 @@ impl Octree {
 
     pub fn recalculate_occlusion(&mut self) {
         let borrow = self.root.clone();
-        println!("Recalculate occlusion");
+        log::info!("Recalculate occlusion");
         self.root.recalculate_occlusion(&borrow);
     }
 
