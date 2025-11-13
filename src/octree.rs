@@ -3,10 +3,12 @@ use crate::ocnode::Ocnode;
 use crate::stored_octree::StoredOctree;
 use nalgebra::Point3;
 
+pub const LEVELS: u32 = 9;
+
 /// An octree has a name and a tree of nodes.
 #[derive(Clone)]
 pub struct Octree {
-    root: Ocnode,
+    pub root: Ocnode,
     depth: u32,
 }
 
@@ -30,6 +32,63 @@ impl Octree {
         let borrow = self.root.clone();
         log::info!("Recalculate occlusion");
         self.root.recalculate_occlusion(&borrow);
+    }
+
+    pub fn recalculate_occlusion_for_selections(&mut self, selections: Vec<[i32; 3]>) {
+        println!(
+            "Recalculating occlusion for selections {}",
+            selections.len()
+        );
+
+        let variations = vec![
+            [0, 0, 0],
+            [1, 0, 0],
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, 1],
+            [0, 0, -1],
+        ];
+
+        for position in selections {
+            for variant in variations.iter() {
+                let maybe = self.root.find_by_index(
+                    position[0] + variant[0],
+                    position[1] + variant[1],
+                    position[2] + variant[2],
+                    LEVELS,
+                );
+                if maybe.is_some() {
+                    let actual = maybe.unwrap();
+                    if actual.active {
+                        println!("Recalculating occlusion for selection {:?}", position);
+                        let front_occluded_calculated = actual.front_occluded(&self.root);
+                        let back_occluded_calculated = actual.back_occluded(&self.root);
+                        let top_occluded_calculated = actual.top_occluded(&self.root);
+                        let bottom_occluded_calculated = actual.bottom_occluded(&self.root);
+                        let left_occluded_calculated = actual.left_occluded(&self.root);
+                        let right_occluded_calculated = actual.right_occluded(&self.root);
+
+                        let maybe_mut = self
+                            .root
+                            .find_mut_by_index(
+                                position[0] + variant[0],
+                                position[1] + variant[1],
+                                position[2] + variant[2],
+                                LEVELS,
+                            )
+                            .unwrap();
+                        maybe_mut.back_occluded_calculated = back_occluded_calculated;
+                        maybe_mut.front_occluded_calculated = front_occluded_calculated;
+                        maybe_mut.top_occluded_calculated = top_occluded_calculated;
+                        maybe_mut.bottom_occluded_calculated = bottom_occluded_calculated;
+                        maybe_mut.left_occluded_calculated = left_occluded_calculated;
+                        maybe_mut.right_occluded_calculated = right_occluded_calculated;
+                    }
+                }
+            }
+        }
     }
 
     pub fn paint_first_collision(

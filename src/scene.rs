@@ -311,13 +311,17 @@ impl Scene {
 
     /// The key was pressed to toggle the state of the current selection.
     pub fn handle_toggle_voxel(&mut self) {
+        log::info!("Start toggling voxel");
         let selections = Self::selection_voxels(
             &self.selection_position,
             self.selection_radius as i32,
             self.selection_shape,
         );
 
+        log::info!("Checking if all voxels are active");
         let value: bool = self.model.all_voxels_active(&selections);
+        log::info!("Checking done: {}", value);
+
         let count = selections.len();
         let fluid = self.fluid;
         let noise = self.noise;
@@ -335,12 +339,20 @@ impl Scene {
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         let fluid = if self.fluid { 1 } else { 0 };
         let noise = if self.noise { 1 } else { 0 };
+        println!("Scene toggle voxels");
         self.model
             .toggle_voxels(selections, !value, color, camera_eye, fluid, noise);
+        println!("Scene toggle voxels done");
         self.invalidate_drawables_cache = true;
-        self.model.recalculate_occlusion();
-        let material = Material::new(color, noise, fluid);
-        self.invalidate_render_material = Some(material);
+        let selections = Self::selection_voxels(
+            &self.selection_position,
+            self.selection_radius as i32,
+            self.selection_shape,
+        );
+        println!("Scene recalculate_occlusion_for_selections");
+        self.model.recalculate_occlusion_for_selections(selections);
+        println!("Scene recalculate_occlusion_for_selections DONE");
+        self.invalidate_render_cache = true;
     }
 
     /// Save the scene to the browser.
@@ -894,11 +906,18 @@ impl Scene {
         let mut voxels = Vec::new();
         let range: i32 = Ocnode::range() * 2;
         let radius_squared: i32 = radius.pow(2);
+        let xmin = i32::max(center[0] - radius - 1, -range);
+        let xmax = i32::min(center[0] + radius + 1, range);
+        let ymin = i32::max(center[1] - radius - 1, -range);
+        let ymax = i32::min(center[1] + radius + 1, range);
+        let zmin = i32::max(center[2] - radius - 1, -range);
+        let zmax = i32::min(center[2] + radius + 1, range);
 
+        println!("Generating selection voxels...");
         if shape == SelectionShape::Sphere {
-            for x in -range..range {
-                for y in -range..range {
-                    for z in -range..range {
+            for x in xmin..xmax {
+                for y in ymin..ymax {
+                    for z in zmin..zmax {
                         let voxel_position = [x, y, z];
                         let distance: i32 =
                             Self::calculate_distance_squared(center, &voxel_position);
@@ -910,9 +929,9 @@ impl Scene {
                 }
             }
         } else if shape == SelectionShape::Cube {
-            for x in -range..range {
-                for y in -range..range {
-                    for z in -range..range {
+            for x in xmin..xmax {
+                for y in ymin..ymax {
+                    for z in zmin..zmax {
                         let voxel_position = [x, y, z];
                         if (center[0] - voxel_position[0]).abs() < radius
                             && (center[1] - voxel_position[1]).abs() < radius
@@ -925,8 +944,8 @@ impl Scene {
             }
         } else if shape == SelectionShape::SquareXZ {
             // SquareXZ
-            for x in -range..range {
-                for z in -range..range {
+            for x in xmin..xmax {
+                for z in zmin..zmax {
                     let voxel_position = [x, center[1], z];
                     if (center[0] - voxel_position[0]).abs() < radius
                         && (center[2] - voxel_position[2]).abs() < radius
@@ -937,8 +956,8 @@ impl Scene {
             }
         } else if shape == SelectionShape::SquareXY {
             // SquareXY
-            for x in -range..range {
-                for y in -range..range {
+            for x in xmin..xmax {
+                for y in ymin..ymax {
                     let voxel_position = [x, y, center[2]];
                     if (center[0] - voxel_position[0]).abs() < radius
                         && (center[1] - voxel_position[1]).abs() < radius
@@ -949,8 +968,8 @@ impl Scene {
             }
         } else if shape == SelectionShape::SquareYZ {
             // SquareYZ
-            for y in -range..range {
-                for z in -range..range {
+            for y in ymin..ymax {
+                for z in zmin..zmax {
                     let voxel_position = [center[0], y, z];
                     if (center[1] - voxel_position[1]).abs() < radius
                         && (center[2] - voxel_position[2]).abs() < radius
@@ -961,8 +980,8 @@ impl Scene {
             }
         } else if shape == SelectionShape::CircleXZ {
             // CircleXZ
-            for x in -range..range {
-                for z in -range..range {
+            for x in xmin..xmax {
+                for z in zmin..zmax {
                     let voxel_position = [x, center[1], z];
                     if (((center[0] - voxel_position[0]).abs() as f64).powi(2)
                         + ((center[2] - voxel_position[2]).abs() as f64).powi(2))
@@ -975,8 +994,8 @@ impl Scene {
             }
         } else if shape == SelectionShape::CircleXY {
             // CircleXY
-            for x in -range..range {
-                for y in -range..range {
+            for x in xmin..xmax {
+                for y in ymin..ymax {
                     let voxel_position = [x, y, center[2]];
                     if (((center[0] - voxel_position[0]).abs() as f64).powi(2)
                         + ((center[1] - voxel_position[1]).abs() as f64).powi(2))
@@ -989,8 +1008,8 @@ impl Scene {
             }
         } else if shape == SelectionShape::CircleYZ {
             // CircleYZ
-            for y in -range..range {
-                for z in -range..range {
+            for y in ymin..ymax {
+                for z in zmin..zmax {
                     let voxel_position = [center[0], y, z];
                     if (((center[1] - voxel_position[1]).abs() as f64).powi(2)
                         + ((center[2] - voxel_position[2]).abs() as f64).powi(2))
@@ -1062,7 +1081,7 @@ impl Scene {
 
                     let vertices = self.selection_cube.vertices_world();
 
-                    println!("Rebuilding selection render cache");
+                    println!("Rebuilding selection render cache X number of selection cubes.");
                     self.selection_vertices_cache
                         .as_mut()
                         .unwrap()
@@ -1091,7 +1110,7 @@ impl Scene {
                 if self.invalidate_render_material.is_none()
                     || self.invalidate_render_material.as_ref().unwrap() == &material
                 {
-                    println!("Rebuilding material render cache");
+                    println!("Rebuilding material render cache X number of cubes");
                     self.render_cache
                         .as_mut()
                         .expect("Render cache should be initialized")

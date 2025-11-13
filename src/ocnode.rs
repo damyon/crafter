@@ -1,4 +1,4 @@
-use crate::{cube::Cube, drawable::Drawable};
+use crate::{cube::Cube, drawable::Drawable, octree::Octree};
 use nalgebra::Point3;
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,7 @@ pub struct Ocnode {
     #[serde(rename = "level")]
     sub_division_level: u32,
     /// Is this cube empty or filled?
-    active: bool,
+    pub active: bool,
     /// We don't serialize this directly but this is the smaller cubes inside this one.
     #[serde(skip)]
     #[serde(default = "empty_list")]
@@ -40,12 +40,12 @@ pub struct Ocnode {
     fluid: i32,
     /// Render this node with a noisy texture.
     noise: i32,
-    front_occluded_calculated: bool,
-    back_occluded_calculated: bool,
-    top_occluded_calculated: bool,
-    bottom_occluded_calculated: bool,
-    left_occluded_calculated: bool,
-    right_occluded_calculated: bool,
+    pub front_occluded_calculated: bool,
+    pub back_occluded_calculated: bool,
+    pub top_occluded_calculated: bool,
+    pub bottom_occluded_calculated: bool,
+    pub left_occluded_calculated: bool,
+    pub right_occluded_calculated: bool,
 }
 
 impl Ocnode {
@@ -684,6 +684,7 @@ impl Ocnode {
         fluid: i32,
         noise: i32,
     ) {
+        println!("Toggle voxels in {:?}", positions.len());
         for position in positions {
             let maybe = self.find_mut_by_index(position[0], position[1], position[2], LEVELS);
             if maybe.is_some() {
@@ -694,6 +695,7 @@ impl Ocnode {
                 actual.noise = noise;
             }
         }
+        println!("Toggle voxels Done");
     }
 
     /// Generate a list of drawables from the active cubes in this one.

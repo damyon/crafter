@@ -43,6 +43,10 @@ impl Model {
         self.voxels.recalculate_occlusion();
     }
 
+    pub fn recalculate_occlusion_for_selections(&mut self, selections: Vec<[i32; 3]>) {
+        self.voxels.recalculate_occlusion_for_selections(selections);
+    }
+
     /// Initialise
     pub fn init(&mut self) {
         self.voxels.init();
