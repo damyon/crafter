@@ -53,7 +53,7 @@ fn main() {
 
     let (window, display) = SimpleWindowBuilder::new()
         .with_title("Crafter")
-        .with_inner_size(800, 600)
+        .with_inner_size(2048, 1280)
         .build(&event_loop);
     let (width, height) = display.get_framebuffer_dimensions();
 

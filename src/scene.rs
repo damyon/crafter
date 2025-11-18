@@ -175,10 +175,10 @@ impl Scene {
 
     /// Process a mouse down event.
     pub fn handle_mouse_down(&mut self) {
-        if self.mouse.last_position[0] > -0.2
-            && self.mouse.last_position[0] < 0.2
-            && self.mouse.last_position[1] > -0.2
-            && self.mouse.last_position[1] < 0.2
+        if self.mouse.last_position[0] > -0.4
+            && self.mouse.last_position[0] < 0.4
+            && self.mouse.last_position[1] > -0.4
+            && self.mouse.last_position[1] < 0.4
         {
             self.mouse.is_pressed = true;
         }
@@ -1051,7 +1051,6 @@ impl Scene {
                     .as_mut()
                     .expect("Render cache should be initialized")
                     .clear();
-                self.invalidate_render_cache = false;
                 self.invalidate_selection_render_cache = true;
             }
 
@@ -1104,45 +1103,27 @@ impl Scene {
                 self.drawables_cache = self.model.drawables();
             }
 
-            for voxel in self.drawables_cache.iter() {
-                let vertices = voxel.vertices_world();
-                let material = Material::new(voxel.color, voxel.noise, voxel.fluid);
-                if self.invalidate_render_material.is_none()
-                    || self.invalidate_render_material.as_ref().unwrap() == &material
-                {
-                    println!("Rebuilding material render cache X number of cubes");
-                    self.render_cache
-                        .as_mut()
-                        .expect("Render cache should be initialized")
-                        .entry(material)
-                        .or_insert_with(Vec::new)
-                        .extend(vertices);
+            if self.invalidate_render_cache || self.invalidate_render_material.is_some() {
+                for voxel in self.drawables_cache.iter() {
+                    let vertices = voxel.vertices_world();
+                    let material = Material::new(voxel.color, voxel.noise, voxel.fluid);
+                    if self.invalidate_render_material.is_none()
+                        || self.invalidate_render_material.as_ref().unwrap() == &material
+                    {
+                        println!("Rebuilding material render cache X number of cubes");
+                        self.render_cache
+                            .as_mut()
+                            .expect("Render cache should be initialized")
+                            .entry(material)
+                            .or_insert_with(Vec::new)
+                            .extend(vertices);
+                    }
                 }
             }
-
+            self.invalidate_render_cache = false;
             self.invalidate_render_material = None;
         }
-        for material in self
-            .render_cache
-            .as_ref()
-            .expect("Render cache should be initialized")
-            .keys()
-        {
-            // Process each material here
-            graphics.draw_vertices(
-                display,
-                frame,
-                material,
-                self.render_cache
-                    .as_ref()
-                    .expect("Render cache should be initialized")
-                    .get(material)
-                    .unwrap(),
-                self.camera,
-                self.light,
-                self.elapsed,
-            );
-        }
+
         let material = Material::new(self.material_color, self.noise as i32, self.fluid as i32);
 
         graphics.draw_vertices(
@@ -1160,6 +1141,27 @@ impl Scene {
                 display,
                 frame,
                 &self.grid_xz,
+                self.camera,
+                self.light,
+                self.elapsed,
+            );
+        }
+        for material in self
+            .render_cache
+            .as_ref()
+            .expect("Render cache should be initialized")
+            .keys()
+        {
+            // Process each material here
+            graphics.draw_vertices(
+                display,
+                frame,
+                material,
+                self.render_cache
+                    .as_ref()
+                    .expect("Render cache should be initialized")
+                    .get(material)
+                    .unwrap(),
                 self.camera,
                 self.light,
                 self.elapsed,
