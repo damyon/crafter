@@ -420,13 +420,17 @@ impl Graphics {
          // shadowMap: shadow_texture
         };
 
+        let opaque = 255;
+        let tolerance = 10;
+        let write_depth = material.color[3] > (opaque - tolerance);
+
         let params = glium::DrawParameters {
             line_width: Some(2.0),
             blend: glium::Blend::alpha_blending(),
             backface_culling: glium::BackfaceCullingMode::CullClockwise,
             depth: glium::Depth {
                 test: glium::DepthTest::IfLessOrEqual,
-                write: true,
+                write: write_depth,
                 ..Default::default()
             },
             viewport: Some(glium::Rect {

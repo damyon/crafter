@@ -14,6 +14,7 @@ use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
 use nalgebra::*;
 use rfd::FileDialog;
+use std::char::ToLowercase;
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -1146,6 +1147,34 @@ impl Scene {
                 self.elapsed,
             );
         }
+        let opaque = 255;
+        let tolerance = 10;
+        // Render opaques.
+        for material in self
+            .render_cache
+            .as_ref()
+            .expect("Render cache should be initialized")
+            .keys()
+        {
+            if material.color[3] > (opaque - tolerance) {
+                // Process each material here
+                graphics.draw_vertices(
+                    display,
+                    frame,
+                    material,
+                    self.render_cache
+                        .as_ref()
+                        .expect("Render cache should be initialized")
+                        .get(material)
+                        .unwrap(),
+                    self.camera,
+                    self.light,
+                    self.elapsed,
+                );
+            }
+        }
+
+        // Render translucents.
         for material in self
             .render_cache
             .as_ref()
@@ -1153,19 +1182,21 @@ impl Scene {
             .keys()
         {
             // Process each material here
-            graphics.draw_vertices(
-                display,
-                frame,
-                material,
-                self.render_cache
-                    .as_ref()
-                    .expect("Render cache should be initialized")
-                    .get(material)
-                    .unwrap(),
-                self.camera,
-                self.light,
-                self.elapsed,
-            );
+            if material.color[3] <= (opaque - tolerance) {
+                graphics.draw_vertices(
+                    display,
+                    frame,
+                    material,
+                    self.render_cache
+                        .as_ref()
+                        .expect("Render cache should be initialized")
+                        .get(material)
+                        .unwrap(),
+                    self.camera,
+                    self.light,
+                    self.elapsed,
+                );
+            }
         }
 
         graphics.finish_camera_frame();
