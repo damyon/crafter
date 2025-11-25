@@ -225,12 +225,12 @@ impl Scene {
     pub fn handle_move_up(&mut self) {
         self.camera.eye = Point3::new(
             self.camera.eye.x,
-            self.camera.eye.y + 0.1_f32,
+            self.camera.eye.y + 0.3_f32,
             self.camera.eye.z,
         );
         self.camera.target = Point3::new(
             self.camera.target.x,
-            self.camera.target.y + 0.1_f32,
+            self.camera.target.y + 0.3_f32,
             self.camera.target.z,
         );
 
@@ -243,12 +243,12 @@ impl Scene {
     pub fn handle_move_down(&mut self) {
         self.camera.eye = Point3::new(
             self.camera.eye.x,
-            self.camera.eye.y - 0.1_f32,
+            self.camera.eye.y - 0.3_f32,
             self.camera.eye.z,
         );
         self.camera.target = Point3::new(
             self.camera.target.x,
-            self.camera.target.y - 0.1_f32,
+            self.camera.target.y - 0.3_f32,
             self.camera.target.z,
         );
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
@@ -288,7 +288,7 @@ impl Scene {
     pub fn handle_move_forward(&mut self) {
         let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
-        let projection = Vector3::new(diff.x, diff.y, diff.z) / blunting;
+        let projection = Vector3::new(diff.x, 0.0, diff.z) / blunting;
 
         self.camera.eye += projection;
         self.camera.target += projection;
@@ -301,7 +301,7 @@ impl Scene {
     pub fn handle_move_backward(&mut self) {
         let diff = self.camera.target - self.camera.eye;
         let blunting = 10.0;
-        let projection = Vector3::new(-diff.x, -diff.y, -diff.z) / blunting;
+        let projection = Vector3::new(-diff.x, 0.0, -diff.z) / blunting;
 
         self.camera.eye += projection;
         self.camera.target += projection;
@@ -1081,12 +1081,12 @@ impl Scene {
 
                     let vertices = self.selection_cube.vertices_world();
 
-                    println!("Rebuilding selection render cache X number of selection cubes.");
                     self.selection_vertices_cache
                         .as_mut()
                         .unwrap()
                         .extend(vertices);
                 }
+                println!("Rebuilding selection render cache.");
             }
 
             if self.invalidate_drawables_cache {
@@ -1125,28 +1125,6 @@ impl Scene {
             self.invalidate_render_material = None;
         }
 
-        let material = Material::new(self.material_color, self.noise as i32, self.fluid as i32);
-
-        graphics.draw_vertices(
-            display,
-            frame,
-            &material,
-            self.selection_vertices_cache.as_mut().expect("Some"),
-            self.camera,
-            self.light,
-            self.elapsed,
-        );
-
-        if self.grid_visible {
-            graphics.draw(
-                display,
-                frame,
-                &self.grid_xz,
-                self.camera,
-                self.light,
-                self.elapsed,
-            );
-        }
         let opaque = 255;
         let tolerance = 10;
         // Render opaques.
@@ -1172,6 +1150,29 @@ impl Scene {
                     self.elapsed,
                 );
             }
+        }
+
+        let material = Material::new(self.material_color, self.noise as i32, self.fluid as i32);
+
+        graphics.draw_vertices(
+            display,
+            frame,
+            &material,
+            self.selection_vertices_cache.as_mut().expect("Some"),
+            self.camera,
+            self.light,
+            self.elapsed,
+        );
+
+        if self.grid_visible {
+            graphics.draw(
+                display,
+                frame,
+                &self.grid_xz,
+                self.camera,
+                self.light,
+                self.elapsed,
+            );
         }
 
         // Render translucents.
