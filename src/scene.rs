@@ -1041,8 +1041,6 @@ impl Scene {
             .as_secs_f32()
             * animation_speed;
 
-        graphics.prepare_camera_frame(frame);
-
         if self.invalidate_render_cache
             || self.invalidate_selection_render_cache
             || self.invalidate_render_material.is_some()
@@ -1054,15 +1052,6 @@ impl Scene {
                     .clear();
                 self.invalidate_selection_render_cache = true;
             }
-
-            /*graphics.prepare_shadow_frame();
-
-            for voxel in self.model.drawables().iter() {
-                graphics.draw_shadow(display, voxel, self.light);
-            }
-
-            graphics.finish_shadow_frame();
-            */
 
             if self.invalidate_selection_render_cache {
                 self.invalidate_selection_render_cache = false;
@@ -1127,6 +1116,32 @@ impl Scene {
 
         let opaque = 255;
         let tolerance = 10;
+
+        graphics.prepare_shadow_frame();
+        // Render shadows
+        for material in self
+            .render_cache
+            .as_ref()
+            .expect("Render cache should be initialized")
+            .keys()
+        {
+            if material.color[3] > (opaque - tolerance) {
+                // Process each material here
+                graphics.draw_shadow_vertices(
+                    display,
+                    self.render_cache
+                        .as_ref()
+                        .expect("Render cache should be initialized")
+                        .get(material)
+                        .unwrap(),
+                    self.light,
+                );
+            }
+        }
+
+        graphics.finish_shadow_frame();
+        graphics.prepare_camera_frame(frame);
+
         // Render opaques.
         for material in self
             .render_cache

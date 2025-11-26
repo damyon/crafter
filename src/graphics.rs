@@ -227,23 +227,22 @@ impl Graphics {
     }
 
     /// Render to the shadow buffer so we can compute shadows.
-    pub fn draw_shadow(
+    pub fn draw_shadow_vertices(
         &mut self,
         display: &Display<WindowSurface>,
-        drawable: &impl Drawable,
+        vertices: &Vec<Vertex>,
         light: Camera,
     ) {
-        let vertices_buffer =
-            glium::VertexBuffer::new(display, drawable.vertices().as_slice()).unwrap();
-        let indices = glium::index::NoIndices(drawable.primitive_type());
+        let vertices_buffer = glium::VertexBuffer::new(display, vertices.as_slice()).unwrap();
+        let indices = glium::index::NoIndices(PrimitiveType::TrianglesList);
 
         let eye = light.eye;
         let target = light.target;
         let view = Isometry3::look_at_rh(&eye, &target, &Vector3::y());
 
         let model = Isometry3::new(
-            Vector3::from_row_slice(drawable.translation()),
-            Vector3::from_row_slice(drawable.rotation()),
+            Vector3::from_row_slice(&[0.0, 0.0, 0.0]),
+            Vector3::from_row_slice(&[0.0, 0.0, 0.0]),
         );
 
         // Compute the matrices
