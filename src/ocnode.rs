@@ -1,4 +1,4 @@
-use crate::{cube::Cube, drawable::Drawable, octree::Octree};
+use crate::{cube::Cube, drawable::Drawable};
 use nalgebra::Point3;
 use serde::{Deserialize, Serialize};
 

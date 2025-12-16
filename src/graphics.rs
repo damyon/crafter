@@ -119,6 +119,7 @@ impl Graphics {
     /// Compile the camera shaders.
     pub fn setup_camera_shaders(&mut self, display: &Display<WindowSurface>) -> Program {
         let vertex_shader_source = "#version 460
+
                 in vec3 position;
                 in vec3 normal;
                 uniform mat4 uPMatrix;
@@ -135,6 +136,7 @@ impl Graphics {
                     vec4 a_position = vec4(position, 1.0);
                     gl_Position = uPMatrix * uMVMatrix * a_position;
 
+                    //positionFromLightPov = uPMatrix * uMMatrix * a_position;
                     positionFromLightPov = u_light_PMatrix * u_light_MVMatrix * a_position;
                     // This is incorrect on purpose because a voxel grid aligns with the axis.
                     worldPosition = uPMatrix * uMMatrix * a_position;
@@ -143,6 +145,7 @@ impl Graphics {
                 ";
 
         let fragment_shader_source = "#version 460
+
                 precision mediump float;
                 uniform vec4 u_color;
                 uniform bool u_fluid;
@@ -190,8 +193,12 @@ impl Graphics {
 
                 void main(void) {
                     float ambientLight = 0.5;
-                    vec3 positionFromLightPovInTexture = positionFromLightPov.xyz/positionFromLightPov.w * 0.5 + 0.5;
+                    vec3 positionFromLightPovInTexture = (positionFromLightPov.xyz/positionFromLightPov.w) * 0.5 + 0.5;
 
+                    float closestDepth = texture(shadowMap, positionFromLightPovInTexture.xy).r;
+                    bool anyDepth = texture(shadowMap, positionFromLightPovInTexture.xy).a > 0.0;
+
+                    float inLight = (!anyDepth || closestDepth > (positionFromLightPovInTexture.z)) ? 1.0 : 0.0;
 
                     // Diffuse
                     vec3 lightDir = normalize(-(vec3(-3.0, -10.0, 5.0)));
@@ -199,7 +206,7 @@ impl Graphics {
                     float shade = max(dot(normal, lightDir), 0.0);
 
 
-                    float combined = ambientLight + 0.6 * shade;
+                    float combined = ambientLight + 0.6 * shade * inLight;
                     float fluidCompensation = 1.0;
                     float noiseCompensation = 1.0;
 
@@ -322,7 +329,13 @@ impl Graphics {
         let light_model_view = (light_view * model).to_homogeneous();
         let light_model_view_array: [[f32; 4]; 4] = light_model_view.into();
         let light_projection_array: [[f32; 4]; 4] = light_projection_matrix.into();
-        //let shadow_texture = self.shadow_depth_texture.as_ref().unwrap();
+        let shadow_texture = self
+            .shadow_depth_texture
+            .as_ref()
+            .unwrap()
+            .sampled()
+            .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest);
+
         let uniforms = uniform! {
           u_color: *color,
           u_fluid: drawable.fluid() != 0,
@@ -333,8 +346,8 @@ impl Graphics {
           uMMatrix: model_array,
           uPMatrix: projection_array,
           u_light_MVMatrix: light_model_view_array,
-          u_light_PMMatrix: light_projection_array,
-         // shadowMap: shadow_texture
+          u_light_PMatrix: light_projection_array,
+          shadowMap: shadow_texture
         };
 
         let params = glium::DrawParameters {
@@ -390,21 +403,34 @@ impl Graphics {
         );
 
         let projection_matrix = self.build_camera_projection();
-        let model_view = (view * model).to_homogeneous();
-        let model_matrix = model.to_homogeneous();
-        let model_view_array: [[f32; 4]; 4] = model_view.into();
-        let model_array: [[f32; 4]; 4] = model_matrix.into();
         let projection_array: [[f32; 4]; 4] = projection_matrix.into();
+        let model_view = (view * model).to_homogeneous();
+        let model_view_array: [[f32; 4]; 4] = model_view.into();
+        let model_matrix = model.to_homogeneous();
+        let model_array: [[f32; 4]; 4] = model_matrix.into();
         // Also do these for the light matrices.
 
         let light_eye = light.eye;
         let light_target = light.target;
         let light_view = Isometry3::look_at_rh(&light_eye, &light_target, &Vector3::y());
         let light_projection_matrix = self.build_light_projection();
+        let light_projection_array: [[f32; 4]; 4] = light_projection_matrix.into();
         let light_model_view = (light_view * model).to_homogeneous();
         let light_model_view_array: [[f32; 4]; 4] = light_model_view.into();
-        let light_projection_array: [[f32; 4]; 4] = light_projection_matrix.into();
-        //let shadow_texture = self.shadow_depth_texture.as_ref().unwrap();
+
+        let shadow_texture = self
+            .shadow_depth_texture
+            .as_ref()
+            .unwrap()
+            .sampled()
+            .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest);
+        /*  glium::uniforms::Sampler::new(self.shadow_depth_texture.as_ref().unwrap())
+        .magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+        .minify_filter(glium::uniforms::MinifySamplerFilter::Nearest)
+        .depth_texture_comparison(Some(
+            glium::uniforms::DepthTextureComparison::LessOrEqual,
+        ));*/
+
         let uniforms = uniform! {
           u_color: material.upscale_color(),
           u_fluid: material.fluid != 0,
@@ -415,8 +441,8 @@ impl Graphics {
           uMMatrix: model_array,
           uPMatrix: projection_array,
           u_light_MVMatrix: light_model_view_array,
-          u_light_PMMatrix: light_projection_array,
-         // shadowMap: shadow_texture
+          u_light_PMatrix: light_projection_array,
+          shadowMap: shadow_texture
         };
 
         let opaque = 255;
@@ -452,10 +478,13 @@ impl Graphics {
     }
 
     /// Prepare to draw the shadow.
-    pub fn prepare_shadow_frame(&self) {}
+    pub fn prepare_shadow_frame(&self) {
+        let mut surface = self.shadow_depth_texture.as_ref().unwrap().as_surface();
+        surface.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 0.0);
+    }
 
     /// Complete the shadow drawing.
-    pub fn finish_shadow_frame(&self) {}
+    pub fn finish_shadow_frame(&self, _elapsed: f32) {}
 
     /// Prepare the camera frame.
     pub fn prepare_camera_frame(&mut self, frame: &mut Frame) {

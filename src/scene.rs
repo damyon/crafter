@@ -14,7 +14,6 @@ use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
 use nalgebra::*;
 use rfd::FileDialog;
-use std::char::ToLowercase;
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -1139,7 +1138,10 @@ impl Scene {
             }
         }
 
-        graphics.finish_shadow_frame();
+        graphics.finish_shadow_frame(self.elapsed);
+        if self.elapsed > 3.0 {
+            self.start_time = Some(Instant::now());
+        }
         graphics.prepare_camera_frame(frame);
 
         // Render opaques.
