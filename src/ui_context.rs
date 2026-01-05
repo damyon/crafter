@@ -60,6 +60,7 @@ impl UiContext {
 
         let mut button = Button::new((-0.63, -0.95), (0.1, 0.1), 20);
         button.add_state(String::from("resources/shape-sphere.png"));
+        button.add_state(String::from("resources/shape-pyramid.png"));
         button.add_state(String::from("resources/shape-cube.png"));
         button.add_state(String::from("resources/shape-square-xz.png"));
         button.add_state(String::from("resources/shape-square-xy.png"));

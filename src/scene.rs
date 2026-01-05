@@ -22,6 +22,7 @@ use std::time::{Duration, Instant};
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum SelectionShape {
     Sphere,
+    Pyramid,
     Cube,
     SquareXZ,
     SquareXY,
@@ -402,6 +403,8 @@ impl Scene {
     /// Hide or show the selection shape.
     pub fn handle_toggle_selection_shape(&mut self) {
         self.selection_shape = if self.selection_shape == SelectionShape::Sphere {
+            SelectionShape::Pyramid
+        } else if self.selection_shape == SelectionShape::Pyramid {
             SelectionShape::Cube
         } else if self.selection_shape == SelectionShape::Cube {
             SelectionShape::SquareXZ
@@ -923,6 +926,20 @@ impl Scene {
                             Self::calculate_distance_squared(center, &voxel_position);
 
                         if distance < radius_squared {
+                            voxels.push([x, y, z]);
+                        }
+                    }
+                }
+            }
+        } else if shape == SelectionShape::Pyramid {
+            for x in xmin..xmax {
+                for y in center[1]..ymax {
+                    for z in zmin..zmax {
+                        let voxel_position = [x, y, z];
+                        let shrink = voxel_position[1] - center[1];
+                        if (center[0] - voxel_position[0]).abs() < radius - shrink
+                            && (center[2] - voxel_position[2]).abs() < radius - shrink
+                        {
                             voxels.push([x, y, z]);
                         }
                     }
