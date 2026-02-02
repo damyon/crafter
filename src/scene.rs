@@ -24,6 +24,9 @@ pub enum SelectionShape {
     Sphere,
     Pyramid,
     Cube,
+    PoleXZ,
+    PoleXY,
+    PoleYZ,
     SquareXZ,
     SquareXY,
     SquareYZ,
@@ -407,6 +410,12 @@ impl Scene {
         } else if self.selection_shape == SelectionShape::Pyramid {
             SelectionShape::Cube
         } else if self.selection_shape == SelectionShape::Cube {
+            SelectionShape::PoleXZ
+        } else if self.selection_shape == SelectionShape::PoleXZ {
+            SelectionShape::PoleXY
+        } else if self.selection_shape == SelectionShape::PoleXY {
+            SelectionShape::PoleYZ
+        } else if self.selection_shape == SelectionShape::PoleYZ {
             SelectionShape::SquareXZ
         } else if self.selection_shape == SelectionShape::SquareXZ {
             SelectionShape::SquareXY
@@ -957,6 +966,30 @@ impl Scene {
                             voxels.push([x, y, z]);
                         }
                     }
+                }
+            }
+        } else if shape == SelectionShape::PoleXZ {
+            // PoleXZ
+            for y in ymin..ymax {
+                let voxel_position = [center[0], y, center[2]];
+                if (center[1] - voxel_position[1]).abs() < radius {
+                    voxels.push(voxel_position);
+                }
+            }
+        } else if shape == SelectionShape::PoleXY {
+            // PoleXY
+            for z in zmin..zmax {
+                let voxel_position = [center[0], center[1], z];
+                if (center[2] - voxel_position[2]).abs() < radius {
+                    voxels.push(voxel_position);
+                }
+            }
+        } else if shape == SelectionShape::PoleYZ {
+            // PoleYZ
+            for x in xmin..xmax {
+                let voxel_position = [x, center[1], center[2]];
+                if (center[0] - voxel_position[0]).abs() < radius {
+                    voxels.push(voxel_position);
                 }
             }
         } else if shape == SelectionShape::SquareXZ {

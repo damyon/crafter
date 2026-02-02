@@ -62,6 +62,9 @@ impl UiContext {
         button.add_state(String::from("resources/shape-sphere.png"));
         button.add_state(String::from("resources/shape-pyramid.png"));
         button.add_state(String::from("resources/shape-cube.png"));
+        button.add_state(String::from("resources/shape-pole-xz.png"));
+        button.add_state(String::from("resources/shape-pole-xy.png"));
+        button.add_state(String::from("resources/shape-pole-yz.png"));
         button.add_state(String::from("resources/shape-square-xz.png"));
         button.add_state(String::from("resources/shape-square-xy.png"));
         button.add_state(String::from("resources/shape-square-yz.png"));

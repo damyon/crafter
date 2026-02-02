@@ -214,7 +214,7 @@ impl Graphics {
                         fluidCompensation = animateFluid() * 0.2 + 0.9;
                     }
                     if (u_noise) {
-                        noiseCompensation = rand(worldPosition.xy) * 0.2 + 0.9;
+                        noiseCompensation = rand(worldPosition.xy) * 0.4 + 0.8;
                     }
                     fragColor = vec4(u_color.rgb * combined * noiseCompensation, u_color.a * fluidCompensation);
                 }
