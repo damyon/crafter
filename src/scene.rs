@@ -71,6 +71,12 @@ pub struct Scene {
     fluid: bool,
     /// Is the material noisy?
     noise: bool,
+    /// Is the material noisy in the x direction?
+    noise_x: bool,
+    /// Is the material noisy in the y direction?
+    noise_y: bool,
+    /// Is the material noisy in the z direction?
+    noise_z: bool,
     /// Will the frame match the last rendered frame?
     dirty: bool,
     /// Approximation of time
@@ -116,6 +122,9 @@ impl Scene {
             loading: true,
             fluid: false,
             noise: false,
+            noise_x: false,
+            noise_y: false,
+            noise_z: false,
             dirty: true,
             elapsed: 0.0,
             last_draw: None,
@@ -329,10 +338,17 @@ impl Scene {
         let count = selections.len();
         let fluid = self.fluid;
         let noise = self.noise;
+        let noise_x = self.noise_x;
+        let noise_y = self.noise_y;
+        let noise_z = self.noise_z;
         if value {
-            log::info!("Toggle all voxels active: FALSE {count} {fluid} {noise}");
+            log::info!(
+                "Toggle all voxels active: FALSE {count} {fluid} {noise} {noise_x} {noise_y} {noise_z}"
+            );
         } else {
-            log::info!("Toggle all voxels active: TRUE {count} {fluid} {noise}");
+            log::info!(
+                "Toggle all voxels active: TRUE {count} {fluid} {noise} {noise_x} {noise_y} {noise_z}"
+            );
         }
         let color = [
             (self.material_color[0]).clamp(0.0, 1.0),
@@ -343,9 +359,13 @@ impl Scene {
         let camera_eye = [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z];
         let fluid = if self.fluid { 1 } else { 0 };
         let noise = if self.noise { 1 } else { 0 };
+        let noise_x = if self.noise_x { 1 } else { 0 };
+        let noise_y = if self.noise_y { 1 } else { 0 };
+        let noise_z = if self.noise_z { 1 } else { 0 };
         println!("Scene toggle voxels");
-        self.model
-            .toggle_voxels(selections, !value, color, camera_eye, fluid, noise);
+        self.model.toggle_voxels(
+            selections, !value, color, camera_eye, fluid, noise, noise_x, noise_y, noise_z,
+        );
         println!("Scene toggle voxels done");
         self.invalidate_drawables_cache = true;
         let selections = Self::selection_voxels(
@@ -532,6 +552,9 @@ impl Scene {
                     far,
                     self.material_color,
                     self.noise as i32,
+                    self.noise_x as i32,
+                    self.noise_y as i32,
+                    self.noise_z as i32,
                     self.fluid as i32,
                 );
                 self.invalidate_drawables_cache = true;
@@ -566,6 +589,21 @@ impl Scene {
         translated_commands.push(Command {
             command_type: CommandType::CurrentMaterialNoise,
             data1: if self.noise { 1 } else { 0 },
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialNoiseX,
+            data1: if self.noise_x { 1 } else { 0 },
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialNoiseY,
+            data1: if self.noise_y { 1 } else { 0 },
+            data2: command.data2,
+        });
+        translated_commands.push(Command {
+            command_type: CommandType::CurrentMaterialNoiseZ,
+            data1: if self.noise_z { 1 } else { 0 },
             data2: command.data2,
         });
         translated_commands.push(Command {
@@ -609,6 +647,9 @@ impl Scene {
         println!("F: Toggle fluid mode");
         println!("G: Toggle grid visibility");
         println!("N: Toggle material noise");
+        println!("M: Toggle material noise X");
+        println!(",: Toggle material noise Y");
+        println!(".: Toggle material noise Z");
     }
 
     pub fn more_red(&mut self) {
@@ -868,7 +909,21 @@ impl Scene {
 
     /// Enable color noise.
     pub fn toggle_noise(&mut self) {
-        self.noise = !self.noise;
+        if self.noise {
+            self.noise = false;
+            self.noise_x = true;
+        } else if self.noise_x {
+            self.noise_x = false;
+            self.noise_y = true;
+        } else if self.noise_y {
+            self.noise_y = false;
+            self.noise_z = true;
+        } else if self.noise_z {
+            self.noise_z = false;
+        } else {
+            self.noise = true;
+        }
+
         self.invalidate_render_cache = true;
     }
 
@@ -1145,7 +1200,14 @@ impl Scene {
             if self.invalidate_render_cache || self.invalidate_render_material.is_some() {
                 for voxel in self.drawables_cache.iter() {
                     let vertices = voxel.vertices_world();
-                    let material = Material::new(voxel.color, voxel.noise, voxel.fluid);
+                    let material = Material::new(
+                        voxel.color,
+                        voxel.noise,
+                        voxel.noise_x,
+                        voxel.noise_y,
+                        voxel.noise_z,
+                        voxel.fluid,
+                    );
                     if self.invalidate_render_material.is_none()
                         || self.invalidate_render_material.as_ref().unwrap() == &material
                     {
@@ -1219,7 +1281,14 @@ impl Scene {
             }
         }
 
-        let material = Material::new(self.material_color, self.noise as i32, self.fluid as i32);
+        let material = Material::new(
+            self.material_color,
+            self.noise as i32,
+            self.noise_x as i32,
+            self.noise_y as i32,
+            self.noise_z as i32,
+            self.fluid as i32,
+        );
 
         graphics.draw_vertices(
             display,

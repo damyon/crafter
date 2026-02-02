@@ -17,6 +17,9 @@ pub struct Grid {
     pub color: [f32; 4],
     pub fluid: i32,
     pub noise: i32,
+    pub noise_x: i32,
+    pub noise_y: i32,
+    pub noise_z: i32,
     pub key: u64,
 }
 
@@ -39,6 +42,9 @@ impl Grid {
             color: [0.2, 0.2, 0.5, 0.1],
             fluid: 0,
             noise: 0,
+            noise_x: 0,
+            noise_y: 0,
+            noise_z: 0,
             key: 0,
         }
     }
@@ -182,6 +188,18 @@ impl Drawable for Grid {
 
     fn noise(&self) -> i32 {
         self.noise
+    }
+
+    fn noise_x(&self) -> i32 {
+        self.noise_x
+    }
+
+    fn noise_y(&self) -> i32 {
+        self.noise_y
+    }
+
+    fn noise_z(&self) -> i32 {
+        self.noise_z
     }
 
     /// Calculate the distance from the camera to the grid.

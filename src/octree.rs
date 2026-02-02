@@ -97,13 +97,23 @@ impl Octree {
         far: Point3<f32>,
         material_color: [f32; 4],
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
         fluid: i32,
     ) {
         let collision_opt = self.root.find_first_collision(near, far);
 
         if let Some(collision) = collision_opt {
-            self.root
-                .paint_connected_nodes(collision, material_color, noise, fluid);
+            self.root.paint_connected_nodes(
+                collision,
+                material_color,
+                noise,
+                noise_x,
+                noise_y,
+                noise_z,
+                fluid,
+            );
         }
     }
 
@@ -155,9 +165,13 @@ impl Octree {
         camera_eye: [f32; 3],
         fluid: i32,
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
     ) {
-        self.root
-            .toggle_voxels(&positions, value, color, fluid, noise);
+        self.root.toggle_voxels(
+            &positions, value, color, fluid, noise, noise_x, noise_y, noise_z,
+        );
         self.root.optimize(camera_eye);
     }
 

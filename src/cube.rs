@@ -15,6 +15,9 @@ pub struct Cube {
     pub floor: f32,
     pub fluid: i32,
     pub noise: i32,
+    pub noise_x: i32,
+    pub noise_y: i32,
+    pub noise_z: i32,
     pub bottom_occluded: bool,
     pub left_occluded: bool,
     pub right_occluded: bool,
@@ -41,6 +44,9 @@ impl Cube {
             floor: 0.0001,
             fluid: 0,
             noise: 0,
+            noise_x: 0,
+            noise_y: 0,
+            noise_z: 0,
             bottom_occluded: false,
             left_occluded: false,
             right_occluded: false,
@@ -79,6 +85,18 @@ impl Drawable for Cube {
 
     fn noise(&self) -> i32 {
         self.noise
+    }
+
+    fn noise_x(&self) -> i32 {
+        self.noise_x
+    }
+
+    fn noise_y(&self) -> i32 {
+        self.noise_y
+    }
+
+    fn noise_z(&self) -> i32 {
+        self.noise_z
     }
 
     /// Move a cube.

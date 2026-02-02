@@ -16,4 +16,7 @@ pub trait Drawable {
     fn depth(&self, camera: [f32; 3]) -> f32;
     fn fluid(&self) -> i32;
     fn noise(&self) -> i32;
+    fn noise_x(&self) -> i32;
+    fn noise_y(&self) -> i32;
+    fn noise_z(&self) -> i32;
 }

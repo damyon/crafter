@@ -150,6 +150,9 @@ impl Graphics {
                 uniform vec4 u_color;
                 uniform bool u_fluid;
                 uniform bool u_noise;
+                uniform bool u_noise_x;
+                uniform bool u_noise_y;
+                uniform bool u_noise_z;
                 uniform float u_time;
                 uniform int u_shadow_texture_size;
                 uniform sampler2D shadowMap;
@@ -161,6 +164,15 @@ impl Graphics {
 
                 float rand(vec2 co){
                     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+                }
+
+                float rand_single(float x) {
+                    return fract(sin(x) * 43758.5453123);
+                }
+
+                float rand_sinwave(float x) {
+                    float scaled = 10.0 * x;
+                    return (sin(scaled) * 0.5 + sin(scaled * 2.1) * 0.3 + sin(scaled * 0.45) * 0.2) * 0.5 + 0.5;
                 }
 
                 float animateFluid() {
@@ -214,7 +226,16 @@ impl Graphics {
                         fluidCompensation = animateFluid() * 0.2 + 0.9;
                     }
                     if (u_noise) {
-                        noiseCompensation = rand(worldPosition.xy) * 0.4 + 0.8;
+                        noiseCompensation = rand(worldPosition.xy) * 0.6 + 0.7;
+                    }
+                    if (u_noise_x) {
+                        noiseCompensation = rand_sinwave(worldPosition.x) * 0.4 + 0.8;
+                    }
+                    if (u_noise_y) {
+                        noiseCompensation = rand_sinwave(worldPosition.y) * 0.4 + 0.8;
+                    }
+                    if (u_noise_z) {
+                        noiseCompensation = rand_sinwave(worldPosition.z) * 0.4 + 0.8;
                     }
                     fragColor = vec4(u_color.rgb * combined * noiseCompensation, u_color.a * fluidCompensation);
                 }
@@ -340,6 +361,9 @@ impl Graphics {
           u_color: *color,
           u_fluid: drawable.fluid() != 0,
           u_noise: drawable.noise() != 0,
+          u_noise_x: drawable.noise_x() != 0,
+          u_noise_y: drawable.noise_y() != 0,
+          u_noise_z: drawable.noise_z() != 0,
           u_time: elapsed,
           u_shadow_texture_size:       self.shadow_texture_size,
           uMVMatrix: model_view_array,
@@ -435,6 +459,9 @@ impl Graphics {
           u_color: material.upscale_color(),
           u_fluid: material.fluid != 0,
           u_noise: material.noise != 0,
+          u_noise_x: material.noise_x != 0,
+          u_noise_y: material.noise_y != 0,
+          u_noise_z: material.noise_z != 0,
           u_time: elapsed,
           u_shadow_texture_size:       self.shadow_texture_size,
           uMVMatrix: model_view_array,

@@ -4,11 +4,21 @@ use std::hash::Hash;
 pub struct Material {
     pub color: [i32; 4],
     pub noise: i32,
+    pub noise_x: i32,
+    pub noise_y: i32,
+    pub noise_z: i32,
     pub fluid: i32,
 }
 
 impl Material {
-    pub fn new(color: [f32; 4], noise: i32, fluid: i32) -> Self {
+    pub fn new(
+        color: [f32; 4],
+        noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
+        fluid: i32,
+    ) -> Self {
         Material {
             color: [
                 Material::downscale_color(color[0]),
@@ -17,6 +27,9 @@ impl Material {
                 Material::downscale_color(color[3]),
             ],
             noise,
+            noise_x,
+            noise_y,
+            noise_z,
             fluid,
         }
     }

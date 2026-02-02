@@ -28,10 +28,21 @@ impl Model {
         far: Point3<f32>,
         material_color: [f32; 4],
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
         fluid: i32,
     ) {
-        self.voxels
-            .paint_first_collision(near, far, material_color, noise, fluid);
+        self.voxels.paint_first_collision(
+            near,
+            far,
+            material_color,
+            noise,
+            noise_x,
+            noise_y,
+            noise_z,
+            fluid,
+        );
     }
 
     /// Call optimize on the nested OcNodes
@@ -60,9 +71,13 @@ impl Model {
         camera_eye: [f32; 3],
         fluid: i32,
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
     ) {
-        self.voxels
-            .toggle_voxels(positions, value, color, camera_eye, fluid, noise);
+        self.voxels.toggle_voxels(
+            positions, value, color, camera_eye, fluid, noise, noise_x, noise_y, noise_z,
+        );
     }
 
     /// Determine if all voxels in the list are active.

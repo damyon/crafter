@@ -83,6 +83,9 @@ impl UiContext {
         let mut button = Button::new((-0.41, -0.95), (0.1, 0.1), 49);
         button.add_state(String::from("resources/shader-solid.png"));
         button.add_state(String::from("resources/shader-noise.png"));
+        button.add_state(String::from("resources/shader-noise-x.png"));
+        button.add_state(String::from("resources/shader-noise-y.png"));
+        button.add_state(String::from("resources/shader-noise-z.png"));
 
         self.add_widget(Box::new(button));
 

@@ -40,6 +40,12 @@ pub struct Ocnode {
     fluid: i32,
     /// Render this node with a noisy texture.
     noise: i32,
+    /// Render this node with a noisy texture in the x direction.
+    noise_x: i32,
+    /// Render this node with a noisy texture in the y direction.
+    noise_y: i32,
+    /// Render this node with a noisy texture in the z direction.
+    noise_z: i32,
     pub front_occluded_calculated: bool,
     pub back_occluded_calculated: bool,
     pub top_occluded_calculated: bool,
@@ -62,6 +68,9 @@ impl Ocnode {
             color: [0.8, 0.8, 0.8, 0.8],
             fluid: 0,
             noise: 0,
+            noise_x: 0,
+            noise_y: 0,
+            noise_z: 0,
             front_occluded_calculated: false,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
@@ -168,6 +177,9 @@ impl Ocnode {
         collision: (i32, i32, i32, u32),
         material_color: [f32; 4],
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
         fluid: i32,
     ) {
         let mut completed = Vec::new();
@@ -175,6 +187,9 @@ impl Ocnode {
             collision,
             material_color,
             noise,
+            noise_x,
+            noise_y,
+            noise_z,
             fluid,
             completed.as_mut(),
         );
@@ -185,6 +200,9 @@ impl Ocnode {
         collision: (i32, i32, i32, u32),
         material_color: [f32; 4],
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
         fluid: i32,
         completed: &mut Vec<(i32, i32, i32, u32)>,
     ) {
@@ -203,6 +221,9 @@ impl Ocnode {
             completed.push((x, y, z, level));
             candidate.color = material_color;
             candidate.noise = noise;
+            candidate.noise_x = noise_x;
+            candidate.noise_y = noise_y;
+            candidate.noise_z = noise_z;
             candidate.fluid = fluid;
             left_occluded = candidate.left_occluded_calculated;
             right_occluded = candidate.right_occluded_calculated;
@@ -221,6 +242,9 @@ impl Ocnode {
                     (x - 1, y, z, level),
                     material_color,
                     noise,
+                    noise_x,
+                    noise_y,
+                    noise_z,
                     fluid,
                     completed,
                 );
@@ -232,6 +256,9 @@ impl Ocnode {
                     (x + 1, y, z, level),
                     material_color,
                     noise,
+                    noise_x,
+                    noise_y,
+                    noise_z,
                     fluid,
                     completed,
                 );
@@ -243,6 +270,9 @@ impl Ocnode {
                     (x, y + 1, z, level),
                     material_color,
                     noise,
+                    noise_x,
+                    noise_y,
+                    noise_z,
                     fluid,
                     completed,
                 );
@@ -254,6 +284,9 @@ impl Ocnode {
                     (x, y - 1, z, level),
                     material_color,
                     noise,
+                    noise_x,
+                    noise_y,
+                    noise_z,
                     fluid,
                     completed,
                 );
@@ -266,6 +299,9 @@ impl Ocnode {
                     (x, y, z - 1, level),
                     material_color,
                     noise,
+                    noise_x,
+                    noise_y,
+                    noise_z,
                     fluid,
                     completed,
                 );
@@ -278,6 +314,9 @@ impl Ocnode {
                     (x, y, z + 1, level),
                     material_color,
                     noise,
+                    noise_x,
+                    noise_y,
+                    noise_z,
                     fluid,
                     completed,
                 );
@@ -355,12 +394,19 @@ impl Ocnode {
         let compare_color = compare.color;
         let compare_fluid = compare.fluid;
         let compare_noise = compare.noise;
+        let compare_noise_x = compare.noise_x;
+        let compare_noise_y = compare.noise_y;
+        let compare_noise_z = compare.noise_z;
+
         !(compare_color[0] != self.color[0]
             || compare_color[1] != self.color[1]
             || compare_color[2] != self.color[2]
             || compare_color[3] != self.color[3]
             || compare_fluid != self.fluid
-            || compare_noise != self.noise)
+            || compare_noise != self.noise
+            || compare_noise_x != self.noise_x
+            || compare_noise_y != self.noise_y
+            || compare_noise_z != self.noise_z)
     }
 
     pub fn bottom_occluded(&self, root: &Ocnode) -> bool {
@@ -577,6 +623,9 @@ impl Ocnode {
             found.color = node.color;
             found.fluid = node.fluid;
             found.noise = node.noise;
+            found.noise_x = node.noise_x;
+            found.noise_y = node.noise_y;
+            found.noise_z = node.noise_z;
             found.back_occluded_calculated = node.back_occluded_calculated;
             found.front_occluded_calculated = node.front_occluded_calculated;
             found.top_occluded_calculated = node.top_occluded_calculated;
@@ -683,6 +732,9 @@ impl Ocnode {
         color: [f32; 4],
         fluid: i32,
         noise: i32,
+        noise_x: i32,
+        noise_y: i32,
+        noise_z: i32,
     ) {
         println!("Toggle voxels in {:?}", positions.len());
         for position in positions {
@@ -693,6 +745,9 @@ impl Ocnode {
                 actual.color = color;
                 actual.fluid = fluid;
                 actual.noise = noise;
+                actual.noise_x = noise_x;
+                actual.noise_y = noise_y;
+                actual.noise_z = noise_z;
             }
         }
         println!("Toggle voxels Done");
@@ -708,6 +763,9 @@ impl Ocnode {
                 cube.color = self.color;
                 cube.fluid = self.fluid;
                 cube.noise = self.noise;
+                cube.noise_x = self.noise_x;
+                cube.noise_y = self.noise_y;
+                cube.noise_z = self.noise_z;
                 cube.scale = scale;
                 cube.smooth = true;
 
@@ -748,6 +806,9 @@ impl Ocnode {
             cube.color = self.color;
             cube.fluid = self.fluid;
             cube.noise = self.noise;
+            cube.noise_x = self.noise_x;
+            cube.noise_y = self.noise_y;
+            cube.noise_z = self.noise_z;
             cube.scale = scale;
             cube.smooth = true;
 
@@ -828,6 +889,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -847,6 +911,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -865,6 +932,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -883,6 +953,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -901,6 +974,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -919,6 +995,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -937,6 +1016,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
@@ -955,6 +1037,9 @@ impl Ocnode {
             color: self.color,
             fluid: self.fluid,
             noise: self.noise,
+            noise_x: self.noise_x,
+            noise_y: self.noise_y,
+            noise_z: self.noise_z,
             back_occluded_calculated: false,
             top_occluded_calculated: false,
             bottom_occluded_calculated: false,
