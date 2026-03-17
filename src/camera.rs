@@ -8,6 +8,8 @@ pub struct Camera {
     pub eye: Point3<f32>,
     /// This is what it is looking at
     pub target: Point3<f32>,
+    pub yaw: f32,
+    pub pitch: f32,
 }
 
 impl Camera {
@@ -16,6 +18,8 @@ impl Camera {
         Camera {
             eye: Point3::new(38.0, 16.0, 40.0),
             target: Point3::new(0.0, 0.0, 0.0),
+            yaw: -2.381,
+            pitch: -0.282,
         }
     }
 }

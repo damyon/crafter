@@ -209,26 +209,26 @@ impl Scene {
         let current_position = Point2::new(x, y);
 
         if self.mouse.is_pressed && (y > -0.6) {
-            let position_diff = Point2::new(
-                current_position.x - self.mouse.last_position.x,
-                current_position.y - self.mouse.last_position.y,
+            let sensitivity = 0.5; // "Blunting"
+            let dx = current_position.x - self.mouse.last_position.x;
+            let dy = current_position.y - self.mouse.last_position.y;
+
+            // 1. Update stateful angles
+            self.camera.yaw += dx * sensitivity;
+            self.camera.pitch -= dy * sensitivity;
+
+            // 2. Clamp pitch to prevent flipping (approx 89 degrees)
+            self.camera.pitch = self.camera.pitch.clamp(-1.54, 1.54);
+
+            // 3. Calculate direction vector using Spherical Coordinates
+            let direction = Vector3::new(
+                self.camera.pitch.cos() * self.camera.yaw.sin(),
+                self.camera.pitch.sin(),
+                self.camera.pitch.cos() * self.camera.yaw.cos(),
             );
-            let current_camera_eye = self.camera.eye;
-            let current_camera_target = self.camera.target;
-            let current_camera_direction = current_camera_target - current_camera_eye;
 
-            let blunting = 0.8;
-
-            let pitch = position_diff.x * blunting;
-            let yaw = position_diff.y * blunting;
-
-            let rotation = Rotation3::from_euler_angles(0.0, pitch, yaw);
-            let new_camera_direction = rotation * current_camera_direction;
-            self.camera.target = Point3::new(
-                current_camera_eye.x + new_camera_direction.x,
-                current_camera_eye.y + new_camera_direction.y,
-                current_camera_eye.z + new_camera_direction.z,
-            );
+            // 4. Update the target
+            self.camera.target = self.camera.eye + direction;
         }
         self.mouse.last_position = current_position;
     }
@@ -299,7 +299,7 @@ impl Scene {
     /// The key was pressed to move forward.
     pub fn handle_move_forward(&mut self) {
         let diff = self.camera.target - self.camera.eye;
-        let blunting = 10.0;
+        let blunting = 4.0;
         let projection = Vector3::new(diff.x, 0.0, diff.z) / blunting;
 
         self.camera.eye += projection;
@@ -312,7 +312,7 @@ impl Scene {
     /// The key was pressed to move backwards.
     pub fn handle_move_backward(&mut self) {
         let diff = self.camera.target - self.camera.eye;
-        let blunting = 10.0;
+        let blunting = 4.0;
         let projection = Vector3::new(-diff.x, 0.0, -diff.z) / blunting;
 
         self.camera.eye += projection;
@@ -957,6 +957,15 @@ impl Scene {
 
         self.print_keyboard_bindings();
         self.invalidate_render_cache = true;
+
+        let zero: f32 = 0.0;
+        let mouse_moved = Command {
+            command_type: CommandType::MouseMoved,
+            data1: zero.to_bits(),
+            data2: zero.to_bits(),
+        };
+        self.handle_mouse_moved(&mouse_moved);
+        self.handle_mouse_moved(&mouse_moved);
     }
 
     /// Quicker than distance - no sqrt.
