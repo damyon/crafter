@@ -59,7 +59,7 @@ impl UiContext {
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.63, -0.95), (0.1, 0.1), 20);
+        let mut button = Button::new((-0.63, -0.95), (0.1, 0.1), VirtualKeyCode::ToggleSelectionShape as u32);
         button.add_state(String::from("resources/shape-sphere.png"));
         button.add_state(String::from("resources/shape-pyramid.png"));
         button.add_state(String::from("resources/shape-cube.png"));
@@ -75,13 +75,13 @@ impl UiContext {
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.52, -0.95), (0.1, 0.1), 33);
+        let mut button = Button::new((-0.52, -0.95), (0.1, 0.1), VirtualKeyCode::ToggleFluid as u32);
         button.add_state(String::from("resources/material-solid.png"));
         button.add_state(String::from("resources/material-fluid.png"));
 
         self.add_widget(Box::new(button));
 
-        let mut button = Button::new((-0.41, -0.95), (0.1, 0.1), 49);
+        let mut button = Button::new((-0.41, -0.95), (0.1, 0.1), VirtualKeyCode::ToggleNoise as u32);
         button.add_state(String::from("resources/shader-solid.png"));
         button.add_state(String::from("resources/shader-noise.png"));
         button.add_state(String::from("resources/shader-noise-x.png"));

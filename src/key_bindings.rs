@@ -26,7 +26,7 @@ pub enum Action {
 }
 
 /// A list of virtual key codes that we want to handle
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum VirtualKeyCode {
     OpenScene = 4001,
     SaveScene = 4002,
@@ -68,6 +68,16 @@ impl KeyBindings {
             KeyBindings {
                 os: OperatingSystem::Mac
             }
+        }
+    }
+
+    pub fn virtual_key(&self, action: Option<Action>) -> Option<VirtualKeyCode> {
+        match action {
+            Some(Action::ToggleShowGrid) => Some(VirtualKeyCode::ToggleShowGrid),
+            Some(Action::ToggleNoise) => Some(VirtualKeyCode::ToggleNoise),
+            Some(Action::ToggleFluid) => Some(VirtualKeyCode::ToggleFluid),
+            Some(Action::ToggleSelectionShape) => Some(VirtualKeyCode::ToggleSelectionShape),
+            _ => None
         }
     }
 

@@ -1,5 +1,6 @@
 use crate::canvas::Canvas;
 use crate::command::{Command, CommandType};
+use crate::key_bindings::KeyBindings;
 use glium::Frame;
 use glium::backend::glutin::Display;
 use glutin::surface::WindowSurface;
@@ -77,6 +78,23 @@ impl Widget for Button {
                         data1: self.mapped_key,
                         data2: self.mapped_key,
                     })
+                }
+            },
+            CommandType::KeyDown => {
+                let key = command.data1;
+
+                println!("UI Key pressed: {}", key);
+                let bindings: KeyBindings = KeyBindings::new();
+                let action_opt = bindings.action(key);
+                let virtual_opt = bindings.virtual_key(action_opt);
+
+                match virtual_opt {
+                    Some(virtual_value) => {
+                        if virtual_value as u32 == self.mapped_key {
+                            self.current_state = (self.current_state + 1) % self.states.len();
+                        }
+                    },
+                    _ => ()
                 }
             }
             _ => (),
